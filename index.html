@@ -1,0 +1,2450 @@
+<title>Van Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: sticky header with section tabs (same family as the Driver Pay Log, DPD P&L Tracker, EV Charging Log and Damages & Claims Log); dashboard = controls, tiles, alert and breakdown tables; each van opens as its own page; logging = form beside the live working-out. */
+:root {
+  --bg: #f2f3f6;
+  --surface: #ffffff;
+  --sunk: #e9ecf2;
+  --ink: #161b26;
+  --muted: #5b6375;
+  --line: #d9dee7;
+  --accent: #1d4ed8;
+  --accent-ink: #ffffff;
+  --blue: #e3e9f6;
+  --blue-ink: #23407a;
+  --amber: #fbecd6;
+  --amber-ink: #7a4508;
+  --purple: #efe4f7;
+  --purple-ink: #5d2a86;
+  --teal: #e4eef0;
+  --teal-ink: #1d5560;
+  --warn: #8a5300;
+  --warn-bg: #fdf0d5;
+  --good: #17703f;
+  --good-bg: #e2f3e9;
+  --bad: #b42318;
+  --bad-bg: #fbe4e1;
+  --hl: #e8eefc;
+  --plate: #f6cf1f;
+  --plate-ink: #111111;
+  --plate-edge: #c9a400;
+  --ev: #1f9d55;
+  --overlay: rgba(10, 13, 20, .86);
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Barlow", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1218; --surface: #171b24; --sunk: #1f2430; --ink: #e9ecf3; --muted: #9aa3b5; --line: #2a3140;
+    --accent: #8fb0ff; --accent-ink: #071233; --blue: #1f2a42; --blue-ink: #a9c1f2; --amber: #3a2a14; --amber-ink: #ffcf8a;
+    --purple: #2e2140; --purple-ink: #d9b6f5; --teal: #16302f; --teal-ink: #9fdde3; --warn: #ffc56b; --warn-bg: #3a2c12;
+    --good: #52c98a; --good-bg: #16301f; --bad: #ff6e61; --bad-bg: #3a1a17; --hl: #1a2547; --plate-edge: #8a7000; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218; --surface: #171b24; --sunk: #1f2430; --ink: #e9ecf3; --muted: #9aa3b5; --line: #2a3140;
+  --accent: #8fb0ff; --accent-ink: #071233; --blue: #1f2a42; --blue-ink: #a9c1f2; --amber: #3a2a14; --amber-ink: #ffcf8a;
+  --purple: #2e2140; --purple-ink: #d9b6f5; --teal: #16302f; --teal-ink: #9fdde3; --warn: #ffc56b; --warn-bg: #3a2c12;
+  --good: #52c98a; --good-bg: #16301f; --bad: #ff6e61; --bad-bg: #3a1a17; --hl: #1a2547; --plate-edge: #8a7000; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+td, .tile b, .num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: .01em; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+a { color: var(--accent); }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 6px 20px; padding-block: 12px 0; }
+.top h1 { font-size: 26px; text-transform: uppercase; }
+.top h1 span { color: var(--accent); }
+.sub { margin: 0; color: var(--muted); font-size: 13px; }
+.sub a { font-weight: 600; text-decoration: none; }
+.sub a:hover { text-decoration: underline; }
+.brand { padding-bottom: 10px; min-width: 0; }
+.nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.nav button { font: inherit; font-weight: 600; background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 12px 10px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.nav .count { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+
+main.wrap { padding-block: 18px 40px; }
+.panel { display: grid; gap: 16px; min-width: 0; }
+.banner { padding: 10px 14px; border-radius: var(--radius); background: var(--bad-bg); color: var(--bad); font-weight: 500; margin-bottom: 16px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
+.card > h2 { font-size: 21px; margin-bottom: 4px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; }
+label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+label .opt { font-weight: 500; }
+input[type=text], input[type=number], input[type=date], input[type=url], input[type=email], input[type=search], select, textarea {
+  width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0;
+}
+textarea { resize: vertical; min-height: 64px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input:disabled, select:disabled { opacity: .55; }
+.grow { flex: 1 1 220px; }
+.upper { text-transform: uppercase; }
+
+.seg { display: inline-flex; background: var(--sunk); border-radius: 10px; padding: 4px; gap: 2px; max-width: 100%; overflow-x: auto; }
+.seg button { font: inherit; font-weight: 600; border: 0; border-radius: 7px; padding: 8px 12px; background: none; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.radios { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.radios input { position: absolute; opacity: 0; pointer-events: none; }
+.radios label { display: block; text-align: center; padding: 9px 4px; cursor: pointer; color: var(--ink); background: var(--bg); font-weight: 500; font-size: 14px; }
+.radios label + input + label { border-left: 1px solid var(--line); }
+.radios input:checked + label { background: var(--ink); color: var(--surface); }
+.radios input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+.datenav { display: flex; gap: 6px; align-items: center; }
+.datenav input { width: auto; }
+.iconbtn { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--sunk); color: var(--ink); font-size: 20px; cursor: pointer; line-height: 1; }
+.iconbtn:hover { border-color: var(--accent); }
+.btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--sunk); color: var(--ink); white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.mini { font: inherit; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.mini.armed { background: var(--bad); border-color: var(--bad); color: #fff; }
+.mini.go { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.rowbtns { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.msg { min-height: 1.2em; font-size: 13px; color: var(--muted); margin: 0; }
+.msg.err { color: var(--bad); }
+.msg.ok { color: var(--good); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.rangeline { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
+.rangeline h2 { font-size: 24px; }
+.rangeline h2 small { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.tile b { font-family: var(--font-display); font-size: 26px; font-weight: 600; }
+.tile small { color: var(--muted); font-size: 12px; }
+.tile.main { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tile.main .eyebrow, .tile.main small { color: inherit; opacity: .85; }
+.tile.minus b { color: var(--bad); }
+.tile.plus b { color: var(--good); }
+.tile.warn { background: var(--warn-bg); border-color: transparent; }
+.tile.warn b { color: var(--warn); }
+.tile.alarm { background: var(--bad-bg); border-color: transparent; }
+.tile.alarm b { color: var(--bad); }
+
+.block { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; min-width: 0; }
+.block-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 14px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.block-head h3 { font-size: 20px; }
+.block-head .meta { font-size: 13px; color: var(--muted); }
+.block-body { padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; padding: 8px 12px; background: var(--sunk); white-space: nowrap; }
+td { padding: 8px 12px; border-top: 1px solid var(--line); white-space: nowrap; text-align: right; vertical-align: top; }
+th.l, td.l { text-align: left; }
+th:first-child, td:first-child { position: sticky; left: 0; z-index: 1; }
+td:first-child { background: var(--surface); }
+tfoot td { font-weight: 600; background: var(--sunk); }
+tr.click { cursor: pointer; }
+tr.click:hover td, tr.sel td { background: var(--hl); }
+tr.dim td { color: var(--muted); }
+td.neg, .neg { color: var(--bad); font-weight: 600; }
+td.pos, .pos { color: var(--good); font-weight: 600; }
+td.wrapcell { white-space: normal; min-width: 240px; text-align: left; }
+.name { font-weight: 600; }
+.email { color: var(--muted); font-size: 12px; }
+.small { color: var(--muted); font-size: 12px; }
+.chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
+.chip.t-service { background: var(--blue); color: var(--blue-ink); }
+.chip.t-repair { background: var(--amber); color: var(--amber-ink); }
+.chip.t-breakdown { background: var(--bad-bg); color: var(--bad); }
+.chip.t-tyres { background: var(--purple); color: var(--purple-ink); }
+.chip.t-mot { background: var(--teal); color: var(--teal-ink); }
+.chip.bad { background: var(--bad-bg); color: var(--bad); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+.chip.ok { background: var(--good-bg); color: var(--good); }
+.chip.info { background: var(--blue); color: var(--blue-ink); }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.empty { padding: 26px 18px; text-align: center; color: var(--muted); }
+.empty h3 { color: var(--ink); font-size: 20px; margin-bottom: 4px; }
+
+/* UK rear number plate, with the green flash zero-emission vans carry */
+.plate { display: inline-flex; align-items: stretch; overflow: hidden; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; line-height: 1.55; background: var(--plate); color: var(--plate-ink); border: 1px solid var(--plate-edge); border-radius: 4px; padding: 0 7px; white-space: nowrap; }
+.plate.ev::before { content: ""; width: 6px; background: var(--ev); margin: -1px 7px -1px -8px; }
+.plate.big { font-size: 26px; padding: 0 12px; line-height: 1.35; }
+.plate.big.ev::before { width: 10px; margin: -1px 12px -1px -13px; }
+
+.cols { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 16px; align-items: start; }
+.side { display: grid; gap: 14px; min-width: 0; }
+.stack { display: grid; gap: 14px; min-width: 0; }
+.form { display: grid; gap: 12px; min-width: 0; }
+.form fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; min-width: 0; }
+.form legend { font-family: var(--font-display); font-weight: 700; font-size: 19px; padding: 0; margin-bottom: 8px; }
+.form hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.preview { background: var(--sunk); border-radius: 8px; padding: 10px 12px; font-size: 14px; display: grid; gap: 4px; }
+.preview .line { display: flex; justify-content: space-between; gap: 10px; }
+.check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 500; font-size: 14px; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.formgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.rulebox { display: grid; gap: 6px; background: var(--sunk); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+.rulebox p { margin: 0; }
+.flag { display: flex; gap: 8px; align-items: start; padding: 10px 12px; border-radius: 8px; background: var(--bad-bg); color: var(--bad); font-size: 14px; font-weight: 500; }
+.flag.warn { background: var(--warn-bg); color: var(--warn); }
+.flag.info { background: var(--blue); color: var(--blue-ink); }
+.flags { display: grid; gap: 8px; }
+.dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 10px 16px; }
+.dl div { display: grid; gap: 1px; min-width: 0; }
+.dl span { font-size: 12px; color: var(--muted); font-weight: 600; }
+.dl b { font-weight: 500; overflow-wrap: anywhere; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.vanhead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; justify-content: space-between; }
+.vanhead .who { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; }
+.vanhead h2 { font-size: 24px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+
+/* lease mileage meter: used so far, projected at lease end, against the allowance */
+.meter { position: relative; height: 14px; border-radius: 7px; background: var(--sunk); overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; border-radius: 7px; }
+.meter .proj { background: var(--blue); }
+.meter .used { background: var(--accent); }
+.meter.over .proj { background: var(--bad-bg); }
+.meter .limit { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); }
+.meterkey { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.meterkey span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; background: var(--k); }
+
+.attbox { display: grid; gap: 8px; }
+.atts { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.att { display: grid; gap: 4px; align-content: start; min-width: 0; font-size: 12px; }
+.thumb { display: grid; place-items: center; aspect-ratio: 1; max-width: 100%; width: 100%; border-radius: 8px; border: 1px solid var(--line); background: var(--sunk); overflow: hidden; padding: 0; cursor: pointer; color: var(--muted); font: inherit; font-weight: 600; font-size: 13px; text-decoration: none; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.attname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.attadd { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.attadd input[type=url] { flex: 1 1 180px; width: auto; }
+.filebtn { position: relative; overflow: hidden; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+.lightbox { position: fixed; inset: 0; z-index: 20; background: var(--overlay); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.lightbox img { max-width: 100%; max-height: calc(100vh - 110px); border-radius: 8px; background: var(--surface); }
+.lightbox .lbbar { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+
+@media (max-width: 1000px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .cols, .grid2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .top h1 { font-size: 22px; }
+  .seg button { padding: 8px 9px; }
+  .tile b { font-size: 22px; }
+  .row2, .row3 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand">
+    <h1>Van <span>Log</span></h1>
+    <p class="sub">Vans, MOTs, services, leases, issues and repairs · links to the
+      <a href="https://claude.ai/artifact/6HjaHwVteb65co7UQCPxum" target="_blank" rel="noopener noreferrer">P&amp;L</a> ·
+      <a href="https://claude.ai/artifact/QSonryFuT3CyByWD62K8qx" target="_blank" rel="noopener noreferrer">Driver Pay</a> ·
+      <a href="https://claude.ai/artifact/9iMxYyUhsjfLSPwLjtBdQo" target="_blank" rel="noopener noreferrer">EV Charging</a> ·
+      <a href="https://claude.ai/artifact/5TSUGqbdFT1YFS8D8cTYSm" target="_blank" rel="noopener noreferrer">Damages &amp; Claims</a></p>
+  </div>
+  <nav class="nav" role="tablist" aria-label="Sections">
+    <button role="tab" type="button" data-tab="dashboard" aria-selected="true">Dashboard</button>
+    <button role="tab" type="button" data-tab="vans" aria-selected="false">Vans</button>
+    <button role="tab" type="button" data-tab="log" aria-selected="false">Log an event</button>
+    <button role="tab" type="button" data-tab="issues" aria-selected="false">Issues<span class="count" id="issueCount" hidden></span></button>
+    <button role="tab" type="button" data-tab="mileage" aria-selected="false">Mileage</button>
+    <button role="tab" type="button" data-tab="costs" aria-selected="false">Costs &amp; P&amp;L</button>
+    <button role="tab" type="button" data-tab="events" aria-selected="false">All events</button>
+    <button role="tab" type="button" data-tab="settings" aria-selected="false">FDs, drivers &amp; rules</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- DASHBOARD -->
+  <section class="panel" id="tab-dashboard">
+    <div class="card controls">
+      <div class="seg" id="dRangeSeg" role="group" aria-label="Costs over">
+        <button type="button" data-range="period" aria-pressed="true">Pay period</button>
+        <button type="button" data-range="year" aria-pressed="false">Last 12 months</button>
+        <button type="button" data-range="all" aria-pressed="false">All time</button>
+      </div>
+      <div class="datenav" id="dNav">
+        <button class="iconbtn" type="button" id="dPrev" aria-label="Previous pay period">‹</button>
+        <button class="iconbtn" type="button" id="dNext" aria-label="Next pay period">›</button>
+        <button class="btn" type="button" id="dToday">This period</button>
+      </div>
+      <label class="grow" for="dScope">Showing<select id="dScope"></select></label>
+    </div>
+
+    <div class="rangeline">
+      <h2 id="dTitle">–</h2>
+      <div class="actions">
+        <button class="btn" type="button" id="dExport">Download fleet report (CSV)</button>
+        <p class="msg" id="dMsg" role="status"></p>
+      </div>
+    </div>
+
+    <div id="dEmpty" hidden></div>
+    <section class="tiles" id="dTiles" aria-label="Fleet totals"></section>
+
+    <article class="block">
+      <div class="block-head"><h3>Alerts</h3><span class="meta" id="alertMeta">MOT, service, insurance, lease end and road tax due in the next 30 days or overdue, plus lease mileage and issues.</span></div>
+      <div class="scroll"><table id="alertTable"></table></div>
+    </article>
+    <article class="block">
+      <div class="block-head"><h3>Open issues</h3><span class="meta">Reported problems not fixed yet. Tap one to open it.</span></div>
+      <div class="scroll"><table id="dIssues"></table></div>
+    </article>
+    <article class="block">
+      <div class="block-head"><h3>By van</h3><span class="meta" id="dVansMeta">Tap a van to open its page.</span></div>
+      <div class="scroll"><table id="dVans"></table></div>
+    </article>
+    <article class="block">
+      <div class="block-head"><h3>By depot</h3><span class="meta">Tap a depot to filter.</span></div>
+      <div class="scroll"><table id="dDepots"></table></div>
+    </article>
+  </section>
+
+  <!-- VANS -->
+  <section class="panel" id="tab-vans" hidden>
+    <div class="card controls" id="vControls">
+      <div class="seg" id="vStatusSeg" role="group" aria-label="Which vans">
+        <button type="button" data-vs="fleet" aria-pressed="true">Current fleet</button>
+        <button type="button" data-vs="gone" aria-pressed="false">Off fleet</button>
+        <button type="button" data-vs="all" aria-pressed="false">All</button>
+      </div>
+      <label class="grow" for="vScope">Showing<select id="vScope"></select></label>
+      <label class="grow" for="vSearch">Search<input type="search" id="vSearch" autocomplete="off" placeholder="Reg, model, driver, policy no…"></label>
+      <button class="btn primary" type="button" id="vAdd">Add a van</button>
+    </div>
+    <p class="msg" id="vListMsg" role="status"></p>
+
+    <section class="card" id="vanFormCard" hidden>
+      <form id="vanForm" class="form" novalidate>
+        <div class="rangeline"><h2 id="vFormTitle" style="font-size:22px">Add a van</h2><button class="mini" type="button" id="vClose">Close</button></div>
+        <div class="grid2">
+          <fieldset>
+            <legend>The van</legend>
+            <div class="row2">
+              <label for="vReg">Reg *<input type="text" id="vReg" class="upper" autocomplete="off" placeholder="e.g. AB24 CDE"></label>
+              <label for="vModel">Make / model *<input type="text" id="vModel" autocomplete="off" placeholder="e.g. Ford E-Transit"></label>
+            </div>
+            <div class="row2">
+              <label for="vFuel">Fuel<select id="vFuel"><option value="electric">Electric</option><option value="diesel">Diesel</option><option value="petrol">Petrol</option><option value="hybrid">Hybrid</option></select></label>
+              <label for="vFirstReg">First registered <span class="opt">(from the V5)</span><input type="date" id="vFirstReg"></label>
+            </div>
+            <div class="row2">
+              <label for="vDepot">Depot *<select id="vDepot"></select></label>
+              <label for="vFd">FD it runs on <span class="opt">(for the P&amp;L)</span><select id="vFd"></select></label>
+            </div>
+            <label for="vVin">VIN <span class="opt">(optional)</span><input type="text" id="vVin" class="upper" autocomplete="off"></label>
+            <div class="row2">
+              <label for="vStatus">Status<select id="vStatus"><option value="road">On the road</option><option value="off">Off road</option><option value="repair">In repair</option><option value="gone">Off fleet (returned / sold)</option></select></label>
+              <label for="vStatusSince">Since<input type="date" id="vStatusSince"></label>
+            </div>
+            <label for="vStatusNote">Status note <span class="opt">(optional)</span><input type="text" id="vStatusNote" autocomplete="off" placeholder="e.g. At Ford dealer, waiting for parts"></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Driver and mileage</legend>
+            <div class="row2">
+              <label for="vDriver">Assigned driver<select id="vDriver"></select></label>
+              <label for="vDriverFrom">Driving it since<input type="date" id="vDriverFrom"></label>
+            </div>
+            <p class="note" id="vDriverNote">Change the driver here and the old one moves into the van's driver history.</p>
+            <div class="row2">
+              <label for="vMiles">Current mileage<input type="number" id="vMiles" min="0" step="1" inputmode="numeric" placeholder="e.g. 18450"></label>
+              <label for="vMilesDate">Reading date<input type="date" id="vMilesDate"></label>
+            </div>
+            <p class="note" id="vMilesNote">Saved as a mileage reading. Keep it up to date on the Mileage tab.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Owned or leased</legend>
+            <div class="radios" role="radiogroup" aria-label="Owned or leased" style="--n:2">
+              <input type="radio" name="own" id="vOwned" value="owned"><label for="vOwned">Owned</label>
+              <input type="radio" name="own" id="vLeased" value="leased" checked><label for="vLeased">Leased</label>
+            </div>
+            <div id="leaseBox" class="form">
+              <div class="row2">
+                <label for="vLeaseCo">Lease company<input type="text" id="vLeaseCo" autocomplete="off" placeholder="e.g. Northgate"></label>
+                <label for="vLeaseMonthly">Monthly cost (£)<input type="number" id="vLeaseMonthly" min="0" step="0.01" inputmode="decimal"></label>
+              </div>
+              <div class="row2">
+                <label for="vLeaseStart">Lease start<input type="date" id="vLeaseStart"></label>
+                <label for="vLeaseEnd">Lease end<input type="date" id="vLeaseEnd"></label>
+              </div>
+              <div class="row2">
+                <label for="vAnnual">Annual mileage allowance<input type="number" id="vAnnual" min="0" step="1" inputmode="numeric" placeholder="e.g. 25000"></label>
+                <label for="vLeaseStartMiles">Mileage at lease start<input type="number" id="vLeaseStartMiles" min="0" step="1" inputmode="numeric" placeholder="e.g. 12"></label>
+              </div>
+              <label for="vExcessPpm">Excess mileage charge (pence per mile) <span class="opt">(optional)</span><input type="number" id="vExcessPpm" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 8"></label>
+              <label class="check" for="vLeaseMaint"><input type="checkbox" id="vLeaseMaint"> Lease includes servicing and maintenance</label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Insurance and cover</legend>
+            <div class="row2">
+              <label for="vInsCo">Insurance provider<input type="text" id="vInsCo" autocomplete="off"></label>
+              <label for="vPolicy">Policy number<input type="text" id="vPolicy" autocomplete="off"></label>
+            </div>
+            <div class="row2">
+              <label for="vInsRenew">Renewal date<input type="date" id="vInsRenew"></label>
+              <label for="vInsPremium">Annual premium (£) <span class="opt">(optional)</span><input type="number" id="vInsPremium" min="0" step="0.01" inputmode="decimal"></label>
+            </div>
+            <label for="vBreakdown">Breakdown cover <span class="opt">(provider, phone, membership no.)</span><input type="text" id="vBreakdown" autocomplete="off" placeholder="e.g. RAC · 0333 2000 999 · 12345678"></label>
+            <label for="vTax">Road tax due <span class="opt">(optional)</span><input type="date" id="vTax"></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>MOT and service</legend>
+            <label for="vMot">MOT due<input type="date" id="vMot"></label>
+            <p class="note" id="vMotNote">Leave blank for a van's first MOT and it's worked out as 3 years from first registration.</p>
+            <div class="row2">
+              <label for="vSvcLast">Last service<input type="date" id="vSvcLast"></label>
+              <label for="vSvcLastMiles">at mileage<input type="number" id="vSvcLastMiles" min="0" step="1" inputmode="numeric"></label>
+            </div>
+            <div class="row2">
+              <label for="vSvcNext">Next service due (date)<input type="date" id="vSvcNext"></label>
+              <label for="vSvcNextMiles">or at mileage<input type="number" id="vSvcNextMiles" min="0" step="1" inputmode="numeric"></label>
+            </div>
+            <div class="row2">
+              <label for="vSvcMonths">Service every (months)<input type="number" id="vSvcMonths" min="0" step="1" inputmode="numeric" placeholder="e.g. 24"></label>
+              <label for="vSvcMilesInt">or every (miles)<input type="number" id="vSvcMilesInt" min="0" step="1" inputmode="numeric" placeholder="e.g. 25000"></label>
+            </div>
+            <p class="note">The service interval fills in the next service when you log one.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Tyres and battery</legend>
+            <label for="vTyreLast">Tyres last changed<input type="date" id="vTyreLast"></label>
+            <label for="vTyreNotes">Tyre notes<textarea id="vTyreNotes" rows="2" placeholder="e.g. Fronts replaced, rears 4mm"></textarea></label>
+            <div id="battBox" class="form">
+              <div class="row2">
+                <label for="vSoh">Battery health (%)<input type="number" id="vSoh" min="0" max="100" step="1" inputmode="numeric" placeholder="e.g. 96"></label>
+                <label for="vRange">Real-world range (miles)<input type="number" id="vRange" min="0" step="1" inputmode="numeric" placeholder="e.g. 140"></label>
+              </div>
+              <label for="vBattNotes">Battery / range notes<textarea id="vBattNotes" rows="2" placeholder="e.g. Range drops to ~110 in cold weather"></textarea></label>
+            </div>
+            <label for="vNotes">Other notes<textarea id="vNotes" rows="2" placeholder="e.g. Spare key in depot safe"></textarea></label>
+          </fieldset>
+        </div>
+
+        <fieldset>
+          <legend>Documents and photos</legend>
+          <p class="note">V5, lease agreement, insurance certificate, MOT certificates, photos of the van…</p>
+          <div class="attbox" data-att="van"></div>
+        </fieldset>
+
+        <div class="actions">
+          <button class="btn primary" type="submit" id="vSave">Save van</button>
+          <button class="btn" type="button" id="vCancel">Cancel</button>
+          <button class="mini" type="button" id="vDelete" hidden>Delete van</button>
+        </div>
+        <p class="msg" id="vMsg" role="status"></p>
+      </form>
+    </section>
+
+    <section class="panel" id="vanDetail" hidden></section>
+
+    <article class="block" id="vListBlock">
+      <div class="block-head"><h3 id="vTitle">Vans</h3><span class="meta">Tap a van to open its page.</span></div>
+      <div class="scroll"><table id="vTable"></table></div>
+    </article>
+  </section>
+
+  <!-- LOG AN EVENT -->
+  <section class="panel" id="tab-log" hidden>
+    <div class="cols">
+      <div class="side">
+        <section class="card">
+          <form id="evForm" class="form" novalidate>
+            <h2 id="eFormTitle" style="font-size:22px">Log an event</h2>
+            <fieldset>
+              <legend>What happened</legend>
+              <label for="eVan">Van *<select id="eVan"></select></label>
+              <div class="row2">
+                <label for="eDate">Date *<input type="date" id="eDate"></label>
+                <label for="eType">Type *<select id="eType">
+                  <option value="service">Service</option>
+                  <option value="repair">Repair</option>
+                  <option value="breakdown">Breakdown</option>
+                  <option value="tyres">Tyres</option>
+                  <option value="mot">MOT</option>
+                  <option value="other">Other</option>
+                </select></label>
+              </div>
+              <label for="eDesc">Description *<textarea id="eDesc" rows="2" placeholder="e.g. Annual service, front brake pads replaced"></textarea></label>
+              <div class="row2">
+                <label for="eGarage">Garage<input type="text" id="eGarage" list="dlGarages" autocomplete="off" placeholder="e.g. Ford Kettering"></label>
+                <label for="eMiles">Mileage <span class="opt">(at the time)</span><input type="number" id="eMiles" min="0" step="1" inputmode="numeric"></label>
+              </div>
+              <p class="note" id="eDriverLine"></p>
+            </fieldset>
+
+            <fieldset id="motBox" hidden>
+              <legend>MOT</legend>
+              <div class="row2">
+                <label for="eMotResult">Result<select id="eMotResult"><option value="pass">Pass</option><option value="advisory">Pass with advisories</option><option value="fail">Fail</option></select></label>
+                <label for="eMotNext">Next MOT due<input type="date" id="eMotNext"></label>
+              </div>
+            </fieldset>
+            <fieldset id="svcBox" hidden>
+              <legend>Next service</legend>
+              <div class="row2">
+                <label for="eSvcNext">Next service due (date)<input type="date" id="eSvcNext"></label>
+                <label for="eSvcNextMiles">or at mileage<input type="number" id="eSvcNextMiles" min="0" step="1" inputmode="numeric"></label>
+              </div>
+            </fieldset>
+            <fieldset id="tyreBox" hidden>
+              <legend>Tyres changed</legend>
+              <div class="checks">
+                <label class="check" for="eTyFL"><input type="checkbox" id="eTyFL" data-tyre="Front left"> Front left</label>
+                <label class="check" for="eTyFR"><input type="checkbox" id="eTyFR" data-tyre="Front right"> Front right</label>
+                <label class="check" for="eTyRL"><input type="checkbox" id="eTyRL" data-tyre="Rear left"> Rear left</label>
+                <label class="check" for="eTyRR"><input type="checkbox" id="eTyRR" data-tyre="Rear right"> Rear right</label>
+                <label class="check" for="eTySp"><input type="checkbox" id="eTySp" data-tyre="Spare"> Spare</label>
+              </div>
+              <label for="eTyreNotes">Tyre notes <span class="opt">(replaces the van's tyre notes)</span><textarea id="eTyreNotes" rows="2"></textarea></label>
+            </fieldset>
+            <hr>
+
+            <fieldset>
+              <legend>Cost and time off the road</legend>
+              <div class="row2">
+                <label for="eCost">Cost (£)<input type="number" id="eCost" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+                <label for="ePaidBy">Paid by<select id="ePaidBy"><option value="business">The business</option><option value="lease">Lease company</option><option value="warranty">Warranty</option><option value="insurance">Insurance</option></select></label>
+              </div>
+              <div class="row2">
+                <label for="eInvoice">Invoice no. <span class="opt">(optional)</span><input type="text" id="eInvoice" autocomplete="off"></label>
+                <label for="eDays">Days off road<input type="number" id="eDays" min="0" step="0.5" inputmode="decimal" placeholder="0"></label>
+              </div>
+              <label class="check" for="ePaid"><input type="checkbox" id="ePaid" checked> Invoice paid</label>
+              <label for="eStatus">Van status after this<select id="eStatus"><option value="">No change</option><option value="road">Back on the road</option><option value="off">Off road</option><option value="repair">In repair</option></select></label>
+            </fieldset>
+            <hr>
+
+            <fieldset>
+              <legend>Linked issues and claims</legend>
+              <div id="eIssues" class="form"></div>
+              <label for="eClaim">Related claim in the Damages &amp; Claims log<select id="eClaim"></select></label>
+              <label for="eClaimRef">or DPD claim ref <span class="opt">(if not imported yet)</span><input type="text" id="eClaimRef" autocomplete="off"></label>
+            </fieldset>
+            <hr>
+
+            <fieldset>
+              <legend>Invoices and photos</legend>
+              <div class="attbox" data-att="event"></div>
+            </fieldset>
+
+            <div class="actions">
+              <button class="btn primary" type="submit" id="eSave" style="flex:1">Save event</button>
+              <button class="btn" type="button" id="eCancel" hidden>Cancel edit</button>
+            </div>
+            <p class="msg" id="eMsg" role="status"></p>
+          </form>
+        </section>
+        <datalist id="dlGarages"></datalist>
+      </div>
+
+      <div class="stack">
+        <article class="block">
+          <div class="block-head"><h3>What saving this does</h3><span class="meta">Updates as you type.</span></div>
+          <div class="block-body" id="ePreview"></div>
+        </article>
+        <article class="block">
+          <div class="block-head"><h3 id="eRecentTitle">Recent events</h3><span class="meta">Last 10.</span></div>
+          <div class="scroll"><table id="eRecent"></table></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ISSUES -->
+  <section class="panel" id="tab-issues" hidden>
+    <div class="cols">
+      <div class="side">
+        <section class="card">
+          <form id="isForm" class="form" novalidate>
+            <h2 id="iFormTitle" style="font-size:22px">Report an issue</h2>
+            <div class="quick" id="iQuick" aria-label="Common issues">
+              <button class="mini" type="button" data-q="fluids|minor|Screenwash low">Screenwash low</button>
+              <button class="mini" type="button" data-q="lights|soon|Bulb out">Bulb out</button>
+              <button class="mini" type="button" data-q="tyres|soon|Tyre pressure warning">Tyre pressure</button>
+              <button class="mini" type="button" data-q="warning|soon|Warning light on dash">Warning light</button>
+              <button class="mini" type="button" data-q="damage|soon|New damage">New damage</button>
+              <button class="mini" type="button" data-q="wipers|soon|Wiper blades worn">Wipers</button>
+              <button class="mini" type="button" data-q="battery|soon|Charging fault">Charging fault</button>
+              <button class="mini" type="button" data-q="cleaning|minor|Needs a clean / valet">Needs a clean</button>
+            </div>
+            <label for="iVan">Van *<select id="iVan"></select></label>
+            <div class="row2">
+              <label for="iDate">Date reported *<input type="date" id="iDate"></label>
+              <label for="iDriver">Reported by<select id="iDriver"></select></label>
+            </div>
+            <div class="row2">
+              <label for="iCat">What kind<select id="iCat"></select></label>
+              <label for="iSev">How urgent<select id="iSev">
+                <option value="unsafe">Unsafe · van off road</option>
+                <option value="soon" selected>Needs fixing soon</option>
+                <option value="minor">Minor · when convenient</option>
+              </select></label>
+            </div>
+            <label for="iDesc">What's wrong *<textarea id="iDesc" rows="2" placeholder="e.g. Scrape on nearside sliding door, not there yesterday"></textarea></label>
+            <div id="iDamageNote" class="flag info" hidden>If someone's paying for this damage, also log it in the <a href="https://claude.ai/artifact/5TSUGqbdFT1YFS8D8cTYSm" target="_blank" rel="noopener noreferrer">Damages &amp; Claims log</a> and put the DPD ref below.</div>
+            <label for="iClaimRef">DPD claim ref <span class="opt">(if logged as a claim)</span><input type="text" id="iClaimRef" autocomplete="off"></label>
+            <fieldset>
+              <legend>Photos</legend>
+              <div class="attbox" data-att="issue"></div>
+            </fieldset>
+            <hr>
+            <fieldset>
+              <legend>Progress</legend>
+              <div class="radios" role="radiogroup" aria-label="Issue status" style="--n:3">
+                <input type="radio" name="ist" id="iOpen" value="open" checked><label for="iOpen">Reported</label>
+                <input type="radio" name="ist" id="iBooked" value="booked"><label for="iBooked">Booked in</label>
+                <input type="radio" name="ist" id="iFixed" value="fixed"><label for="iFixed">Fixed</label>
+              </div>
+              <label for="iBookedFor" id="iBookedWrap" hidden>Booked in for<input type="date" id="iBookedFor"></label>
+              <label for="iFixedOn" id="iFixedWrap" hidden>Fixed on<input type="date" id="iFixedOn"></label>
+              <label for="iFixNotes">Notes <span class="opt">(what's been done)</span><textarea id="iFixNotes" rows="2"></textarea></label>
+            </fieldset>
+            <div class="actions">
+              <button class="btn primary" type="submit" id="iSave" style="flex:1">Save issue</button>
+              <button class="btn" type="button" id="iCancel" hidden>Cancel edit</button>
+            </div>
+            <p class="msg" id="iMsg" role="status"></p>
+          </form>
+        </section>
+      </div>
+      <div class="stack">
+        <div class="card controls">
+          <div class="seg" id="iStatusSeg" role="group" aria-label="Which issues">
+            <button type="button" data-is="open" aria-pressed="true">Not fixed</button>
+            <button type="button" data-is="fixed" aria-pressed="false">Fixed</button>
+            <button type="button" data-is="all" aria-pressed="false">All</button>
+          </div>
+          <label class="grow" for="iScope">Showing<select id="iScope"></select></label>
+        </div>
+        <p class="msg" id="iListMsg" role="status"></p>
+        <article class="block">
+          <div class="block-head"><h3 id="iTitle">Issues</h3><span class="meta" id="iMeta"></span></div>
+          <div class="scroll"><table id="iTable"></table></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- MILEAGE -->
+  <section class="panel" id="tab-mileage" hidden>
+    <div class="card controls">
+      <label for="mDate">Reading date<input type="date" id="mDate"></label>
+      <label class="grow" for="mScope">Showing<select id="mScope"></select></label>
+      <button class="btn primary" type="button" id="mSave">Save readings</button>
+    </div>
+    <p class="msg" id="mMsg" role="status"></p>
+    <article class="block">
+      <div class="block-head"><h3>Current mileage</h3><span class="meta" id="mMeta">Type the odometer reading for each van you've checked, then save.</span></div>
+      <div class="scroll"><table id="mTable"></table></div>
+    </article>
+    <article class="block">
+      <div class="block-head"><h3>Recent readings</h3><span class="meta">The last 30, newest first.</span></div>
+      <div class="scroll"><table id="mRecent"></table></div>
+    </article>
+  </section>
+
+  <!-- COSTS & P&L -->
+  <section class="panel" id="tab-costs" hidden>
+    <div class="card controls">
+      <div class="datenav">
+        <button class="iconbtn" type="button" id="cPrev" aria-label="Previous pay period">‹</button>
+        <div><span class="eyebrow">4-week pay period</span><h2 id="cTitle" style="font-size:21px">–</h2></div>
+        <button class="iconbtn" type="button" id="cNext" aria-label="Next pay period">›</button>
+        <button class="btn" type="button" id="cToday">This period</button>
+      </div>
+      <label class="grow" for="cScope">Showing<select id="cScope"></select></label>
+      <div class="actions" style="justify-content:flex-end">
+        <button class="btn primary" type="button" id="cExportPnl">Download for P&amp;L</button>
+        <button class="btn" type="button" id="cExportHire">Download van hire &amp; insurance</button>
+        <button class="btn" type="button" id="cCopy">Copy summary</button>
+      </div>
+    </div>
+    <p class="msg" id="cMsg" role="status"></p>
+    <section class="tiles" id="cTiles" aria-label="Pay period totals"></section>
+    <article class="block">
+      <div class="block-head"><h3>By van</h3><span class="meta">Tap a van to open its page.</span></div>
+      <div class="scroll"><table id="cVans"></table></div>
+    </article>
+    <article class="block">
+      <div class="block-head"><h3>By FD, for the P&amp;L</h3><span class="meta">Each van's costs go to the FD it runs on.</span></div>
+      <div class="scroll"><table id="cFds"></table></div>
+    </article>
+    <article class="block">
+      <div class="block-head"><h3>Events this pay period</h3><span class="meta">Tap an event to open it.</span></div>
+      <div class="scroll"><table id="cEvents"></table></div>
+    </article>
+    <article class="block">
+      <div class="block-head"><h3>Pay period by pay period</h3><span class="meta">The last 13 periods up to this one. Tap a row to open it.</span></div>
+      <div class="scroll"><table id="cTrend"></table></div>
+    </article>
+    <div class="card">
+      <h2>Getting these figures into the P&amp;L</h2>
+      <div class="note" style="display:grid;gap:6px;margin-top:6px">
+        <p><b>Download for P&amp;L</b> gives one line per FD per day with van maintenance costs the business paid (services, repairs, breakdowns, tyres, MOTs). Costs paid by the lease company, warranty or insurance are left out. Damage costs aren't included here: they reach the P&amp;L from the Damages &amp; Claims log, so nothing is counted twice.</p>
+        <p><b>Download van hire &amp; insurance</b> gives each FD's lease cost and insurance per 4 weeks (monthly lease × 12 ÷ 13, annual premium ÷ 13), for the P&amp;L's <i>Wages, van &amp; insurance</i> tab.</p>
+        <p>Each van's costs go to the FD set on the van. Set it under <b>Vans</b> → edit.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALL EVENTS -->
+  <section class="panel" id="tab-events" hidden>
+    <div class="card controls">
+      <label class="grow" for="aScope">Showing<select id="aScope"></select></label>
+      <label for="aType">Type<select id="aType"><option value="">All types</option></select></label>
+      <label class="grow" for="aSearch">Search<input type="search" id="aSearch" autocomplete="off" placeholder="Garage, invoice no., words, claim ref…"></label>
+      <button class="btn" type="button" id="aExport">Download CSV</button>
+    </div>
+    <p class="msg" id="aMsg" role="status"></p>
+    <section class="card" id="evDetail" hidden></section>
+    <article class="block">
+      <div class="block-head"><h3 id="aTitle">Events</h3><span class="meta">Tap an event to open it with its invoices and photos.</span></div>
+      <div class="scroll"><table id="aTable"></table></div>
+    </article>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="panel" id="tab-settings" hidden>
+    <div class="card">
+      <h2>FDs</h2>
+      <p class="note">Each FD is linked to an email address and a depot, as in the P&amp;L Tracker. Each van runs on an FD, so its costs land on the right FD in the P&amp;L.</p>
+      <div class="scroll" style="margin-top:10px"><table id="fdList"></table></div>
+      <form id="fdForm" class="formgrid" style="margin-top:14px" novalidate>
+        <label for="xCode">FD number / name *<input type="text" id="xCode" autocomplete="off" placeholder="e.g. FD 1042"></label>
+        <label for="xEmail">Email *<input type="email" id="xEmail" autocomplete="off" placeholder="e.g. fd1042@…"></label>
+        <label for="xDepot">Depot *<select id="xDepot"></select></label>
+        <label class="check" for="xActive"><input type="checkbox" id="xActive" checked> Active</label>
+        <div class="actions" style="align-self:end">
+          <button class="btn primary" type="submit" id="xSubmit">Add FD</button>
+          <button class="btn" type="button" id="xCancel" hidden>Cancel edit</button>
+        </div>
+      </form>
+      <p class="msg" id="xMsg" role="status"></p>
+    </div>
+
+    <div class="card">
+      <h2>Drivers</h2>
+      <p class="note">Use the same names as in the Driver Pay Log and the Damages &amp; Claims log, so everything lines up.</p>
+      <div class="scroll" style="margin-top:10px"><table id="drvList"></table></div>
+      <form id="drvForm" class="formgrid" style="margin-top:14px" novalidate>
+        <label for="dName">Driver name *<input type="text" id="dName" autocomplete="off" placeholder="e.g. Jamie Clarke"></label>
+        <label for="dDepot">Depot *<select id="dDepot"></select></label>
+        <label class="check" for="dActive"><input type="checkbox" id="dActive" checked> Active</label>
+        <div class="actions" style="align-self:end">
+          <button class="btn primary" type="submit" id="dSubmit">Add driver</button>
+          <button class="btn" type="button" id="dCancel" hidden>Cancel edit</button>
+        </div>
+      </form>
+      <p class="msg" id="dMsg" role="status"></p>
+    </div>
+
+    <div class="card">
+      <h2>Rules and alerts</h2>
+      <form id="rulesForm" class="form" style="margin-top:10px" novalidate>
+        <div class="formgrid">
+          <label for="rStart">First day of a 4-week pay period<input type="date" id="rStart"></label>
+          <label for="rDepots">Depots <span class="opt">(separate with commas)</span><input type="text" id="rDepots" autocomplete="off"></label>
+          <label for="rAlert">Warn this many days before a date<input type="number" id="rAlert" min="1" step="1" inputmode="numeric"></label>
+          <label for="rMilesWarn">Warn this many miles before a service<input type="number" id="rMilesWarn" min="0" step="100" inputmode="numeric"></label>
+          <label for="rIssue">Flag issues not looked at after (days)<input type="number" id="rIssue" min="0" step="1" inputmode="numeric"></label>
+          <label for="rReading">Ask for a mileage reading after (days)<input type="number" id="rReading" min="1" step="1" inputmode="numeric"></label>
+        </div>
+        <div class="rulebox" id="ruleSummary"></div>
+        <div class="actions"><button class="btn primary" type="submit" id="saveRules">Save rules</button></div>
+        <p class="msg" id="rMsg" role="status"></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Claims from the Damages &amp; Claims log</h2>
+      <p class="note">In the <a href="https://claude.ai/artifact/5TSUGqbdFT1YFS8D8cTYSm" target="_blank" rel="noopener noreferrer">Damages &amp; Claims log</a>, go to <b>All claims</b>, pick <b>All</b> and tap <b>Download CSV</b>. Bring that file in here. Each claim shows on its van's page and can be linked to a repair. Importing again updates them.</p>
+      <div class="actions" style="margin-top:10px">
+        <span class="btn primary filebtn" id="clPick">Import claims CSV<input type="file" id="clFile" accept=".csv,text/csv" aria-label="Import claims CSV"></span>
+        <button class="mini" type="button" id="clClear">Remove imported claims</button>
+      </div>
+      <p class="msg" id="clMsg" role="status"></p>
+    </div>
+  </section>
+</main>
+
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo">
+  <div style="min-width:0">
+    <img id="lbImg" alt="">
+    <div class="lbbar"><span class="chip" id="lbName"></span><button class="btn" type="button" id="lbClose">Close</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const DAY = 864e5;
+  const ETYPES = { service: "Service", repair: "Repair", breakdown: "Breakdown", tyres: "Tyres", mot: "MOT", other: "Other" };
+  const STATUS = { road: "On the road", off: "Off road", repair: "In repair", gone: "Off fleet" };
+  const FUEL = { electric: "Electric", diesel: "Diesel", petrol: "Petrol", hybrid: "Hybrid" };
+  const ICATS = { damage: "Damage", warning: "Warning light", tyres: "Tyres", fluids: "Screenwash / top-ups", lights: "Lights / bulbs", brakes: "Brakes", wipers: "Wipers / screen", battery: "Charging / battery", doors: "Doors / locks", cleaning: "Cleaning", other: "Other" };
+  const SEV = { unsafe: "Unsafe · off road", soon: "Fix soon", minor: "Minor" };
+  const ISTAT = { open: "Reported", booked: "Booked in", fixed: "Fixed" };
+  const PAIDBY = { business: "The business", lease: "Lease company", warranty: "Warranty", insurance: "Insurance" };
+  const MOTRES = { pass: "Pass", advisory: "Pass with advisories", fail: "Fail" };
+  const DEFAULT_SETTINGS = { periodStart: "2026-11-02", depots: ["Raunds", "Glenfield"], alertDays: 30, milesWarn: 1000, issueDays: 3, readingDays: 14 };
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- dates and money ----------
+  const toT = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); };
+  const toS = (t) => new Date(t).toISOString().slice(0, 10);
+  const addDays = (s, n) => toS(toT(s) + n * DAY);
+  const daysBetween = (a, b) => Math.round((toT(b) - toT(a)) / DAY);
+  function addMonths(s, n) {
+    const [y, m, d] = s.split("-").map(Number);
+    const t = new Date(Date.UTC(y, m - 1 + n, 1));
+    const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+    t.setUTCDate(Math.min(d, last));
+    return toS(t.getTime());
+  }
+  const addYears = (s, n) => addMonths(s, n * 12);
+  const todayS = () => { const n = new Date(); return toS(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); };
+  const isDate = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const fmt = (s, o) => new Date(toT(s)).toLocaleDateString("en-GB", { timeZone: "UTC", ...o });
+  const shortD = (s) => (isDate(s) ? fmt(s, { day: "numeric", month: "short" }) : "–");
+  const medD = (s) => (isDate(s) ? fmt(s, { day: "numeric", month: "short", year: "numeric" }) : "–");
+  const gbp = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
+  const intF = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
+  const r2 = (v) => Math.round((v || 0) * 100) / 100;
+  const money = (v) => gbp.format(r2(v));
+  const mOrDash = (v) => (Math.abs(v) > 0.004 ? money(v) : "–");
+  const miles = (v) => (v === null || v === undefined || !Number.isFinite(v) ? "–" : intF.format(Math.round(v)));
+  const num = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+  const has = (v) => v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v));
+  const numOrNull = (v) => (v === "" || v === null || v === undefined ? null : (Number.isFinite(parseFloat(v)) ? parseFloat(v) : null));
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const regKey = (v) => String(v || "").toUpperCase().replace(/\s+/g, "");
+  const regShow = (v) => String(v || "").toUpperCase().trim().replace(/\s+/g, " ");
+  const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "").trim()) ? String(u).trim() : "");
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  const daysWord = (n) => (n === 0 ? "today" : n === 1 ? "tomorrow" : n === -1 ? "yesterday" : n > 0 ? `in ${n} days` : `${-n} days ago`);
+
+  // ---------- state ----------
+  const COLLS = ["fds", "drivers", "vans", "assignments", "events", "issues", "mileage", "claims"];
+  const S = { settings: { ...DEFAULT_SETTINGS }, db: null, dl: null, assets: null, canWrite: true, local: false, rev: 0, loaded: {} };
+  COLLS.forEach((c) => { S[c] = []; S.loaded[c] = false; });
+  const ui = {
+    tab: "dashboard", dRange: "period", dDate: todayS(), dScope: "ALL",
+    vStatus: "fleet", vScope: "ALL", vSearch: "", vDetail: null, vEditing: null, vFormOpen: false,
+    eEditing: null, iEditing: null, iStatus: "open", iScope: "ALL", mScope: "ALL", mDate: todayS(),
+    cDate: todayS(), cScope: "ALL", aScope: "ALL", aType: "", aSearch: "", aDetail: null,
+    editingFd: null, editingDriver: null,
+    att: { van: [], event: [], issue: [] }, attRemoved: { van: [], event: [], issue: [] },
+  };
+  try { const v = localStorage.getItem("vl-range"); if (["period", "year", "all"].includes(v)) ui.dRange = v; } catch (_) {}
+
+  const byId = (list, id) => list.find((x) => x.id === id);
+  const vanById = (id) => byId(S.vans, id);
+  const fdById = (id) => byId(S.fds, id);
+  const driverById = (id) => byId(S.drivers, id);
+  const driverName = (id) => { const d = driverById(id); return d ? d.name : ""; };
+  const byName = (list, k) => list.slice().sort((a, b) => String(a[k]).localeCompare(String(b[k]), undefined, { numeric: true }));
+  const setMsg = (el, text, kind) => { el.textContent = text; el.className = "msg" + (kind ? " " + kind : ""); };
+  const writeErr = (err) => (err && err.code === "quota_exceeded" ? "The log is full. Download old events and delete them to make room." : "Couldn't save. Check your connection and try again.");
+  const strip = (o) => { const { id, ...rest } = o; return rest; };
+  function arm(btn) {
+    if (btn.classList.contains("armed")) return true;
+    btn.classList.add("armed"); const old = btn.textContent; btn.textContent = "Confirm";
+    setTimeout(() => { btn.classList.remove("armed"); btn.textContent = old; }, 3500);
+    return false;
+  }
+  function banner(t) { $("banner").textContent = t; $("banner").hidden = !t; }
+  const allLoaded = () => COLLS.every((c) => S.loaded[c]);
+
+  // ---------- pay periods (same 28-day cycle as the other trackers) ----------
+  function periodInfo(s) {
+    const anchor = S.settings.periodStart || DEFAULT_SETTINGS.periodStart;
+    const p = Math.floor(daysBetween(anchor, s) / 28);
+    return { start: addDays(anchor, p * 28), end: addDays(anchor, p * 28 + 27) };
+  }
+  const periodLabel = (p) => `${shortD(p.start)} – ${medD(p.end)}`;
+
+  // ---------- the van maths ----------
+  function readingsFor(vanId) {
+    const out = [];
+    for (const m of S.mileage) if (m.vanId === vanId && isDate(m.date) && has(m.miles)) out.push({ date: m.date, miles: num(m.miles), src: "reading", id: m.id });
+    for (const e of S.events) if (e.vanId === vanId && isDate(e.date) && has(e.mileage) && num(e.mileage) > 0) out.push({ date: e.date, miles: num(e.mileage), src: "event", id: e.id });
+    return out.sort((a, b) => a.date.localeCompare(b.date) || a.miles - b.miles);
+  }
+  // Miles per day: over the last 6 months of readings, or all of them if that's too short.
+  function dailyRate(rs) {
+    if (rs.length < 2) return null;
+    const last = rs[rs.length - 1];
+    let first = rs.find((r) => r.date >= addDays(last.date, -183));
+    if (daysBetween(first.date, last.date) < 14) first = rs[0];
+    const d = daysBetween(first.date, last.date);
+    if (d < 14 || last.miles < first.miles) return null;
+    return (last.miles - first.miles) / d;
+  }
+  const assignsFor = (vanId) => S.assignments.filter((a) => a.vanId === vanId).sort((a, b) => String(b.from).localeCompare(String(a.from)));
+  function driverAt(vanId, date) {
+    const a = S.assignments.find((x) => x.vanId === vanId && isDate(x.from) && x.from <= date && (!x.to || x.to >= date));
+    return a ? a.driverId : "";
+  }
+
+  // Lease mileage: allowance over the whole lease, what's been used, and where the van is heading at its current pace.
+  function leaseCalc(v, rs, last) {
+    if (v.ownership !== "leased") return null;
+    const annual = num(v.annualMiles);
+    if (!isDate(v.leaseStart) || !isDate(v.leaseEnd) || !(annual > 0)) return { incomplete: true };
+    const term = Math.max(daysBetween(v.leaseStart, v.leaseEnd) + 1, 1);
+    const allowance = annual * term / 365;
+    const startMiles = has(v.leaseStartMiles) ? num(v.leaseStartMiles) : (rs.find((r) => r.date >= v.leaseStart) || rs[0] || {}).miles;
+    const out = { annual, term, allowance, startMiles: startMiles ?? null };
+    if (!last || startMiles === undefined || startMiles === null) return { ...out, noData: true };
+    const used = Math.max(last.miles - startMiles, 0);
+    const elapsed = daysBetween(v.leaseStart, last.date);
+    const toDate = annual * Math.max(elapsed, 0) / 365;
+    const pace = elapsed >= 14 ? used / elapsed : null;
+    const projected = pace !== null ? used + pace * Math.max(daysBetween(last.date, v.leaseEnd), 0) : null;
+    const over = projected !== null ? projected - allowance : null;
+    const ppm = has(v.excessPpm) ? num(v.excessPpm) : null;
+    const overCost = over !== null && over > 0 && ppm !== null ? over * ppm / 100 : null;
+    const state = used > allowance ? "over" : over !== null && over > 0 ? "pace" : "ok";
+    return { ...out, used, elapsed, toDate, pace, perYear: pace !== null ? pace * 365 : null, projected, over, overCost, ppm, state, left: allowance - used };
+  }
+
+  function vanCalc(v) {
+    const today = todayS();
+    const st = S.settings;
+    const rs = readingsFor(v.id);
+    const last = rs[rs.length - 1] || null;
+    const current = last ? last.miles : null;
+    const rate = dailyRate(rs);
+    const firstMot = isDate(v.firstReg) ? addYears(v.firstReg, 3) : "";
+    const motDue = isDate(v.motDue) ? v.motDue : firstMot;
+    const motAuto = !isDate(v.motDue) && !!firstMot;
+    const svcLeft = has(v.nextServiceMiles) && current !== null ? num(v.nextServiceMiles) - current : null;
+    const svcByMilesDate = svcLeft !== null && rate ? addDays(today, Math.max(Math.floor(svcLeft / rate), 0)) : null;
+    const lease = leaseCalc(v, rs, last);
+    const issues = S.issues.filter((i) => i.vanId === v.id && i.status !== "fixed");
+    const gone = v.status === "gone";
+    const alerts = [];
+    const push = (kind, level, text, date, extra) => alerts.push({ vanId: v.id, kind, level, text, date: date || "", ...extra });
+    if (!gone) {
+      const dated = [["MOT", motDue, motAuto ? "first MOT" : ""], ["Service", v.nextServiceDate], ["Insurance renewal", v.insRenewal], ["Road tax", v.taxDue]];
+      if (v.ownership === "leased") dated.push(["Lease end", v.leaseEnd]);
+      for (const [kind, date, note] of dated) {
+        if (!isDate(date)) continue;
+        const n = daysBetween(today, date);
+        if (n < 0) push(kind, "overdue", `${kind}${note ? ` (${note})` : ""} overdue since ${medD(date)}`, date, { days: n });
+        else if (n <= st.alertDays) push(kind, "due", `${kind}${note ? ` (${note})` : ""} due ${medD(date)}, ${daysWord(n)}`, date, { days: n });
+      }
+      if (svcLeft !== null) {
+        if (svcLeft <= 0) push("Service", "overdue", `Service overdue by ${miles(-svcLeft)} miles (due at ${miles(num(v.nextServiceMiles))})`, today, { days: -1 });
+        else if (svcLeft <= st.milesWarn || (svcByMilesDate && daysBetween(today, svcByMilesDate) <= st.alertDays)) push("Service", "due", `Service due in ${miles(svcLeft)} miles${svcByMilesDate ? `, about ${medD(svcByMilesDate)}` : ""}`, svcByMilesDate || today, { days: svcByMilesDate ? daysBetween(today, svcByMilesDate) : 0 });
+      }
+      if (lease && lease.state === "over") push("Lease mileage", "overdue", `Over the lease allowance by ${miles(lease.used - lease.allowance)} miles`, today, { days: -1 });
+      else if (lease && lease.state === "pace") push("Lease mileage", "due", `On track to go ${miles(lease.over)} miles over the lease allowance${lease.overCost ? ` (about ${money(lease.overCost)})` : ""}`, v.leaseEnd, { days: 0 });
+      const ago = last ? daysBetween(last.date, today) : null;
+      if (ago === null) push("Mileage", "info", "No mileage reading yet", "", { days: 9999 });
+      else if (ago > st.readingDays) push("Mileage", "info", `Mileage last updated ${medD(last.date)} (${ago} days ago)`, last.date, { days: 9998 });
+      for (const i of issues) {
+        const age = isDate(i.date) ? daysBetween(i.date, today) : 0;
+        if (i.severity === "unsafe") push("Issue", "overdue", `Unsafe: ${i.description}`, i.date, { days: -age, issueId: i.id });
+        else if (i.status === "open" && age >= st.issueDays) push("Issue", "due", `Not looked at for ${plural(age, "day")}: ${i.description}`, i.date, { days: -age + 1000, issueId: i.id });
+      }
+    }
+    const driverId = v.driverId || "";
+    const fd = fdById(v.fdId);
+    return {
+      ...v, reg: regShow(v.reg), key: regKey(v.reg), rs, last, current, rate, motDue, motAuto, firstMot, svcLeft, svcByMilesDate,
+      lease, issues, alerts, gone, driverId, driverName: driverName(driverId), fdCode: fd ? fd.code : "", fdEmail: fd ? fd.email : "",
+      ev: v.fuel === "electric",
+    };
+  }
+
+  let cache = { key: null };
+  function fleet() {
+    const key = S.rev + "|" + todayS() + "|" + JSON.stringify(S.settings);
+    if (cache.key !== key) {
+      const vans = S.vans.map(vanCalc).sort((a, b) => a.key.localeCompare(b.key));
+      const map = new Map(vans.map((v) => [v.id, v]));
+      const events = S.events.map((e) => evCalc(e, map));
+      cache = { key, vans, map, events };
+    }
+    return cache;
+  }
+  function evCalc(e, map) {
+    const v = map.get(e.vanId);
+    const cost = num(e.cost);
+    const biz = (e.paidBy || "business") === "business" ? cost : 0;
+    const fdId = e.fdId || (v && v.fdId) || "";
+    const fd = fdById(fdId);
+    const drv = e.driverId || (v && isDate(e.date) ? driverAt(v.id, e.date) : "");
+    return {
+      ...e, cost, biz, days: num(e.daysOff), van: v, reg: v ? v.reg : regShow(e.reg) || "Deleted van", key: v ? v.key : regKey(e.reg),
+      depot: (v && v.depot) || e.depot || "", fdId, fdCode: fd ? fd.code : (e.fd || ""), fdEmail: fd ? fd.email : (e.fdEmail || ""),
+      driverName: driverName(drv) || e.driver || "", claim: claimFor(e),
+    };
+  }
+  function claimFor(e) {
+    if (e.claimKey) { const c = S.claims.find((x) => x.id === e.claimKey); if (c) return c; }
+    if (e.claimRef) { const c = S.claims.find((x) => x.dpdRef && x.dpdRef.toLowerCase() === String(e.claimRef).toLowerCase()); if (c) return c; return { dpdRef: e.claimRef, unmatched: true }; }
+    return null;
+  }
+
+  // ---------- scope ----------
+  function scopeOptions(sel, value, withVans = true) {
+    const vans = fleet().vans;
+    const depots = [...new Set((S.settings.depots || []).concat(vans.map((v) => v.depot)).filter(Boolean))];
+    let h = `<option value="ALL">All vans</option>`;
+    h += `<optgroup label="Depots">${depots.map((d) => `<option value="D:${esc(d)}">${esc(d)}</option>`).join("")}</optgroup>`;
+    if (S.fds.length) h += `<optgroup label="FDs">${byName(S.fds, "code").map((f) => `<option value="F:${esc(f.id)}">${esc(f.code)} · ${esc(f.email)}</option>`).join("")}</optgroup>`;
+    if (withVans && vans.length) h += `<optgroup label="Vans">${vans.map((v) => `<option value="V:${esc(v.id)}">${esc(v.reg)}${v.gone ? " (off fleet)" : ""}</option>`).join("")}</optgroup>`;
+    sel.innerHTML = h;
+    sel.value = value;
+    if (sel.value !== value) sel.value = "ALL";
+    return sel.value;
+  }
+  function vanInScope(v, scope) {
+    if (!v) return scope === "ALL";
+    if (scope === "ALL") return true;
+    const x = scope.slice(2);
+    if (scope[0] === "D") return v.depot === x;
+    if (scope[0] === "F") return v.fdId === x;
+    if (scope[0] === "V") return v.id === x;
+    return true;
+  }
+  const evInScope = (e, scope) => (scope === "ALL" ? true : scope[0] === "F" ? e.fdId === scope.slice(2) : scope[0] === "D" ? e.depot === scope.slice(2) : vanInScope(e.van, scope));
+  function scopeName(scope) {
+    if (scope === "ALL") return "All vans";
+    const x = scope.slice(2);
+    if (scope[0] === "D") return `${x} depot`;
+    if (scope[0] === "F") { const f = fdById(x); return f ? `${f.code} · ${f.email}` : "FD"; }
+    if (scope[0] === "V") { const v = vanById(x); return v ? regShow(v.reg) : "Van"; }
+    return "";
+  }
+
+  // ---------- chips ----------
+  const plate = (v, big) => `<span class="plate${v && v.ev ? " ev" : ""}${big ? " big" : ""}">${esc(v ? v.reg : "–")}</span>`;
+  const typeChip = (t) => `<span class="chip t-${esc(t)}">${esc(ETYPES[t] || t)}</span>`;
+  const statusChip = (s) => `<span class="chip ${s === "road" ? "ok" : s === "off" ? "bad" : s === "repair" ? "warn" : ""}">${esc(STATUS[s] || STATUS.road)}</span>`;
+  const levelChip = (l) => (l === "overdue" ? `<span class="chip bad">Overdue</span>` : l === "due" ? `<span class="chip warn">Due soon</span>` : `<span class="chip info">Reminder</span>`);
+  const sevChip = (s) => `<span class="chip ${s === "unsafe" ? "bad" : s === "soon" ? "warn" : ""}">${esc(SEV[s] || SEV.soon)}</span>`;
+  function issueChip(i) {
+    if (i.status === "fixed") return `<span class="chip ok">Fixed${isDate(i.fixedDate) ? " " + esc(shortD(i.fixedDate)) : ""}</span>`;
+    if (i.status === "booked") return `<span class="chip info">Booked in${isDate(i.bookedFor) ? " " + esc(shortD(i.bookedFor)) : ""}</span>`;
+    const age = isDate(i.date) ? daysBetween(i.date, todayS()) : 0;
+    return age >= S.settings.issueDays ? `<span class="chip bad">Not looked at · ${plural(age, "day")}</span>` : `<span class="chip warn">Reported</span>`;
+  }
+  const fdCell = (x) => `<div class="name">${esc(x.fdCode || "No FD")}</div>${x.fdEmail ? `<div class="email">${esc(x.fdEmail)}</div>` : ""}`;
+  const dateCell = (d, alertsOf, kind) => {
+    if (!isDate(d)) return "–";
+    const a = alertsOf.find((x) => x.kind === kind && (x.level === "overdue" || x.level === "due"));
+    return a ? `<span class="chip ${a.level === "overdue" ? "bad" : "warn"}">${esc(shortD(d))}</span>` : esc(medD(d));
+  };
+
+  function rangeOf(mode, date) {
+    if (mode === "period") return periodInfo(date);
+    if (mode === "year") { const t = todayS(); return { start: addDays(t, -364), end: t }; }
+    return null;
+  }
+  const inRange = (d, r) => !r || (isDate(d) && d >= r.start && d <= r.end);
+  function costAgg(list) {
+    const t = { n: 0, cost: 0, biz: 0, days: 0, unpaid: 0, unpaidN: 0 };
+    for (const e of list) {
+      t.n++; t.cost += e.cost; t.biz += e.biz; t.days += e.days;
+      if (e.biz > 0.004 && e.paid === false) { t.unpaid += e.biz; t.unpaidN++; }
+    }
+    return t;
+  }
+  const levelRank = { overdue: 0, due: 1, info: 2 };
+  const sortAlerts = (a, b) => levelRank[a.level] - levelRank[b.level] || (a.days ?? 0) - (b.days ?? 0);
+
+  // ============================================================ DASHBOARD
+  function renderDashboard() {
+    ui.dScope = scopeOptions($("dScope"), ui.dScope);
+    document.querySelectorAll("#dRangeSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.range === ui.dRange)));
+    $("dNav").hidden = ui.dRange !== "period";
+    const r = rangeOf(ui.dRange, ui.dDate);
+    $("dToday").hidden = ui.dRange !== "period" || periodInfo(todayS()).start === r.start;
+    const F = fleet();
+    const vans = F.vans.filter((v) => !v.gone && vanInScope(v, ui.dScope));
+    const evs = F.events.filter((e) => evInScope(e, ui.dScope) && inRange(e.date, r));
+    const rangeTxt = ui.dRange === "period" ? `pay period ${periodLabel(r)}` : ui.dRange === "year" ? "last 12 months" : "all time";
+    $("dTitle").innerHTML = `${esc(scopeName(ui.dScope))} <small>· costs for ${esc(rangeTxt)} · as of ${esc(medD(todayS()))}</small>`;
+
+    const ready = allLoaded();
+    $("dEmpty").hidden = !(ready && !S.vans.length);
+    if (ready && !S.vans.length) $("dEmpty").innerHTML = `<div class="block empty"><h3>No vans yet</h3><p>${S.fds.length ? "Go to <b>Vans</b> and tap <b>Add a van</b>." : "Add your FDs and drivers under <b>FDs, drivers &amp; rules</b>, then add each van under <b>Vans</b>."}</p></div>`;
+
+    const alerts = vans.flatMap((v) => v.alerts).sort(sortAlerts);
+    const overdue = alerts.filter((a) => a.level === "overdue").length, due = alerts.filter((a) => a.level === "due").length;
+    const issues = vans.flatMap((v) => v.issues);
+    const notLooked = issues.filter((i) => i.status === "open" && isDate(i.date) && daysBetween(i.date, todayS()) >= S.settings.issueDays).length;
+    const t = costAgg(evs);
+    const cnt = (s) => vans.filter((v) => (v.status || "road") === s).length;
+    const pace = vans.filter((v) => v.lease && (v.lease.state === "pace" || v.lease.state === "over")).length;
+    $("dTiles").innerHTML = `
+      <div class="tile main"><span class="eyebrow">On the road</span><b>${cnt("road")} of ${vans.length}</b><small>${cnt("off")} off road · ${cnt("repair")} in repair</small></div>
+      <div class="tile ${overdue ? "alarm" : ""}"><span class="eyebrow">Overdue</span><b>${overdue}</b><small>MOT, service, insurance, lease…</small></div>
+      <div class="tile ${due ? "warn" : ""}"><span class="eyebrow">Due in ${S.settings.alertDays} days</span><b>${due}</b><small>coming up</small></div>
+      <div class="tile ${notLooked ? "alarm" : issues.length ? "warn" : ""}"><span class="eyebrow">Open issues</span><b>${issues.length}</b><small>${notLooked} not looked at · ${issues.filter((i) => i.severity === "unsafe").length} unsafe</small></div>
+      <div class="tile minus"><span class="eyebrow">Maintenance cost</span><b>${money(t.biz)}</b><small>${plural(t.n, "event")}${t.cost - t.biz > 0.004 ? ` · ${money(t.cost - t.biz)} paid by others` : ""}</small></div>
+      <div class="tile"><span class="eyebrow">Days off road</span><b>${intF.format(t.days)}</b><small>${esc(rangeTxt)}</small></div>
+      <div class="tile ${pace ? "warn" : ""}"><span class="eyebrow">Over lease mileage pace</span><b>${pace}</b><small>of ${vans.filter((v) => v.ownership === "leased").length} leased vans</small></div>
+      <div class="tile ${t.unpaidN ? "warn" : ""}"><span class="eyebrow">Unpaid invoices</span><b>${money(t.unpaid)}</b><small>${plural(t.unpaidN, "invoice")}</small></div>`;
+
+    $("alertMeta").textContent = `MOT, service, insurance, lease end and road tax due in the next ${S.settings.alertDays} days or overdue, plus lease mileage, mileage readings and issues.`;
+    $("alertTable").innerHTML = alerts.length
+      ? `<thead><tr><th class="l">Van</th><th class="l">Driver</th><th class="l"></th><th class="l">What</th><th class="l">Detail</th></tr></thead><tbody>` +
+        alerts.map((a) => { const v = F.map.get(a.vanId); return `<tr class="click" data-van="${esc(a.vanId)}"${a.issueId ? ` data-issue="${esc(a.issueId)}"` : ""}><td class="l">${plate(v)}</td><td class="l">${esc(v.driverName || "–")}</td><td class="l">${levelChip(a.level)}</td><td class="l name">${esc(a.kind)}</td><td class="wrapcell">${esc(a.text)}</td></tr>`; }).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">${S.vans.length ? "Nothing due. Every date is more than " + S.settings.alertDays + " days away." : "Alerts show here once you add vans."}</span></td></tr></tbody>`;
+
+    $("dIssues").innerHTML = issueRows(issues.slice().sort(issueSort), false);
+
+    // by van
+    $("dVansMeta").textContent = `Costs and days off road for the ${rangeTxt}. Tap a van to open its page.`;
+    const rows = vans.map((v) => ({ v, t: costAgg(evs.filter((e) => e.vanId === v.id)) }));
+    $("dVans").innerHTML = rows.length
+      ? `<thead><tr><th class="l">Van</th><th class="l">Model</th><th class="l">Depot</th><th class="l">Driver</th><th class="l">Status</th><th>Mileage</th><th class="l">MOT</th><th class="l">Service</th><th class="l">Insurance</th><th class="l">Lease mileage</th><th>Issues</th><th>Events</th><th>Maintenance</th><th>Days off road</th></tr></thead><tbody>` +
+        rows.map(({ v, t }) => `<tr class="click" data-van="${esc(v.id)}"><td class="l">${plate(v)}</td><td class="l">${esc(v.model || "–")}</td><td class="l">${esc(v.depot || "–")}</td><td class="l">${esc(v.driverName || "–")}</td><td class="l">${statusChip(v.status)}</td><td>${miles(v.current)}</td><td class="l">${dateCell(v.motDue, v.alerts, "MOT")}</td><td class="l">${svcCell(v)}</td><td class="l">${dateCell(v.insRenewal, v.alerts, "Insurance renewal")}</td><td class="l">${leaseChip(v)}</td><td>${v.issues.length ? `<span class="chip ${v.issues.some((i) => i.severity === "unsafe") ? "bad" : "warn"}">${v.issues.length}</span>` : "–"}</td><td>${t.n || "–"}</td><td>${mOrDash(t.biz)}</td><td>${t.days || "–"}</td></tr>`).join("") +
+        `</tbody><tfoot><tr><td>Total</td><td colspan="10"></td><td>${rows.reduce((a, r) => a + r.t.n, 0)}</td><td>${money(t.biz)}</td><td>${t.days}</td></tr></tfoot>`
+      : `<tbody><tr><td class="l"><span class="small">No vans for this selection.</span></td></tr></tbody>`;
+
+    // by depot
+    const depots = [...new Set((S.settings.depots || []).concat(F.vans.map((v) => v.depot)).filter(Boolean))];
+    const all = F.vans.filter((v) => !v.gone);
+    $("dDepots").innerHTML = `<thead><tr><th class="l">Depot</th><th>Vans</th><th>On the road</th><th>Off road / repair</th><th>Overdue</th><th>Due soon</th><th>Open issues</th><th>Events</th><th>Maintenance</th><th>Days off road</th></tr></thead><tbody>` +
+      depots.map((d) => {
+        const vs = all.filter((v) => v.depot === d), al = vs.flatMap((v) => v.alerts);
+        const tt = costAgg(F.events.filter((e) => e.depot === d && inRange(e.date, r)));
+        return `<tr class="click${ui.dScope === "D:" + d ? " sel" : ""}" data-scope="D:${esc(d)}"><td class="l name">${esc(d)}</td><td>${vs.length}</td><td>${vs.filter((v) => (v.status || "road") === "road").length}</td><td>${vs.filter((v) => v.status === "off" || v.status === "repair").length || "–"}</td><td>${al.filter((a) => a.level === "overdue").length || "–"}</td><td>${al.filter((a) => a.level === "due").length || "–"}</td><td>${vs.reduce((a, v) => a + v.issues.length, 0) || "–"}</td><td>${tt.n || "–"}</td><td>${mOrDash(tt.biz)}</td><td>${tt.days || "–"}</td></tr>`;
+      }).join("") + `</tbody>`;
+  }
+  function svcCell(v) {
+    const a = v.alerts.find((x) => x.kind === "Service" && x.level !== "info");
+    const bits = [];
+    if (isDate(v.nextServiceDate)) bits.push(shortD(v.nextServiceDate));
+    if (has(v.nextServiceMiles)) bits.push(`${miles(num(v.nextServiceMiles))} mi`);
+    if (!bits.length) return "–";
+    return a ? `<span class="chip ${a.level === "overdue" ? "bad" : "warn"}">${esc(bits.join(" / "))}</span>` : esc(bits.join(" / "));
+  }
+  function leaseChip(v) {
+    const l = v.lease;
+    if (!l) return `<span class="small">Owned</span>`;
+    if (l.incomplete) return `<span class="small">Lease details missing</span>`;
+    if (l.noData || l.pace === null) return `<span class="small">Need more readings</span>`;
+    if (l.state === "over") return `<span class="chip bad">Over by ${miles(l.used - l.allowance)}</span>`;
+    if (l.state === "pace") return `<span class="chip warn">Heading ${miles(l.over)} over</span>`;
+    return `<span class="chip ok">On track</span>`;
+  }
+
+  // ---------- issues table (shared) ----------
+  function issueSort(a, b) {
+    const sv = { unsafe: 0, soon: 1, minor: 2 }, st = { open: 0, booked: 1, fixed: 2 };
+    return (st[a.status] ?? 0) - (st[b.status] ?? 0) || (sv[a.severity] ?? 1) - (sv[b.severity] ?? 1) || String(a.date).localeCompare(String(b.date));
+  }
+  function issueRows(list, full) {
+    if (!list.length) return `<tbody><tr><td class="l"><span class="small">${full ? "No issues for this selection." : "No open issues. Drivers' reports show up here."}</span></td></tr></tbody>`;
+    const F = fleet();
+    return `<thead><tr><th class="l">Van</th><th class="l">Reported</th><th class="l">By</th><th class="l">What</th><th class="l">Urgency</th><th class="l">Problem</th><th>Photos</th><th class="l">Status</th>${full ? "<th></th>" : ""}</tr></thead><tbody>` +
+      list.map((i) => {
+        const v = F.map.get(i.vanId);
+        const n = (i.attachments || []).length;
+        const btns = full ? `<td><div class="rowbtns">${i.status !== "fixed" ? `<button class="mini go" type="button" data-fix-issue="${esc(i.id)}">Log repair</button>` : ""}${i.status === "open" ? `<button class="mini" type="button" data-book="${esc(i.id)}">Booked in</button>` : ""}${i.status !== "fixed" ? `<button class="mini" type="button" data-done="${esc(i.id)}">Fixed</button>` : ""}<button class="mini" type="button" data-iedit="${esc(i.id)}">Edit</button><button class="mini" type="button" data-idel="${esc(i.id)}">Delete</button></div></td>` : "";
+        return `<tr class="click${ui.iEditing === i.id ? " sel" : ""}" data-iopen="${esc(i.id)}"><td class="l">${plate(v)}</td><td class="l">${esc(shortD(i.date))}</td><td class="l">${esc(driverName(i.driverId) || "–")}</td><td class="l">${esc(ICATS[i.category] || "Other")}</td><td class="l">${sevChip(i.severity)}</td><td class="wrapcell">${esc(i.description)}${i.fixNotes ? `<div class="small">${esc(i.fixNotes)}</div>` : ""}${i.claimRef ? `<div class="small">Claim ${esc(i.claimRef)}</div>` : ""}</td><td>${n || "–"}</td><td class="l">${issueChip(i)}</td>${btns}</tr>`;
+      }).join("") + `</tbody>`;
+  }
+
+  // ============================================================ VANS
+  function renderVans() {
+    ui.vScope = scopeOptions($("vScope"), ui.vScope, false);
+    document.querySelectorAll("#vStatusSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vs === ui.vStatus)));
+    const F = fleet();
+    const q = ui.vSearch.trim().toLowerCase(), qk = regKey(q).toLowerCase();
+    const list = F.vans.filter((v) => (ui.vStatus === "all" || (ui.vStatus === "gone" ? v.gone : !v.gone)) && vanInScope(v, ui.vScope) &&
+      (!q || (qk && v.key.toLowerCase().includes(qk)) || [v.model, v.driverName, v.policyNo, v.insurer, v.leaseCo, v.vin, v.depot, v.fdCode].some((x) => String(x || "").toLowerCase().includes(q))));
+    $("vTitle").textContent = `${plural(list.length, "van")}`;
+    $("vTable").innerHTML = list.length
+      ? `<thead><tr><th class="l">Van</th><th class="l">Model</th><th class="l">Fuel</th><th class="l">Depot</th><th class="l">FD</th><th class="l">Driver</th><th class="l">Status</th><th class="l">Owned / leased</th><th>Mileage</th><th class="l">MOT</th><th class="l">Service</th><th class="l">Insurance</th><th class="l">Lease end</th><th class="l">Lease mileage</th><th class="l">Alerts</th></tr></thead><tbody>` +
+        list.map((v) => {
+          const o = v.alerts.filter((a) => a.level === "overdue").length, d = v.alerts.filter((a) => a.level === "due").length;
+          return `<tr class="click${ui.vDetail === v.id ? " sel" : ""}" data-van="${esc(v.id)}"><td class="l">${plate(v)}</td><td class="l">${esc(v.model || "–")}</td><td class="l">${esc(FUEL[v.fuel] || "–")}</td><td class="l">${esc(v.depot || "–")}</td><td class="l">${esc(v.fdCode || "–")}</td><td class="l">${esc(v.driverName || "–")}</td><td class="l">${statusChip(v.status)}</td><td class="l">${v.ownership === "leased" ? `Leased${v.leaseCo ? " · " + esc(v.leaseCo) : ""}` : "Owned"}</td><td>${miles(v.current)}</td><td class="l">${dateCell(v.motDue, v.alerts, "MOT")}</td><td class="l">${svcCell(v)}</td><td class="l">${dateCell(v.insRenewal, v.alerts, "Insurance renewal")}</td><td class="l">${v.ownership === "leased" ? dateCell(v.leaseEnd, v.alerts, "Lease end") : "–"}</td><td class="l">${leaseChip(v)}</td><td class="l"><span class="chips">${o ? `<span class="chip bad">${o} overdue</span>` : ""}${d ? `<span class="chip warn">${d} due</span>` : ""}${!o && !d ? "–" : ""}</span></td></tr>`;
+        }).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">${S.vans.length ? "No vans match." : "No vans yet. Tap “Add a van”."}</span></td></tr></tbody>`;
+    $("vAdd").disabled = !S.canWrite;
+    $("vanFormCard").hidden = !ui.vFormOpen;
+    renderVanDetail();
+  }
+
+  function renderVanDetail() {
+    const box = $("vanDetail");
+    const F = fleet();
+    const v = ui.vDetail && F.map.get(ui.vDetail);
+    box.hidden = !v || ui.vFormOpen;
+    $("vListBlock").hidden = !!v && !ui.vFormOpen;
+    $("vControls").hidden = !!v || ui.vFormOpen;
+    if (!v || ui.vFormOpen) return;
+    const d = (k, val) => `<div><span>${esc(k)}</span><b>${val}</b></div>`;
+    const evs = F.events.filter((e) => e.vanId === v.id).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const yr = { start: addDays(todayS(), -364), end: todayS() };
+    const tAll = costAgg(evs), tYr = costAgg(evs.filter((e) => inRange(e.date, yr)));
+    const issues = S.issues.filter((i) => i.vanId === v.id).sort(issueSort);
+    const claims = S.claims.filter((c) => regKey(c.vanReg) === v.key).sort((a, b) => String(b.incidentDate).localeCompare(String(a.incidentDate)));
+    const hist = assignsFor(v.id);
+    const l = v.lease;
+    const breakdown = String(v.breakdown || "");
+
+    let leaseHtml = "";
+    if (v.ownership === "leased") {
+      if (!l || l.incomplete) leaseHtml = `<p class="note">Add the lease start, end and annual mileage allowance to see if the van is on track.</p>`;
+      else if (l.noData) leaseHtml = `<p class="note">Allowance over the lease: <b>${miles(l.allowance)} miles</b>. Add a mileage reading to track it.</p>`;
+      else {
+        const top = Math.max(l.allowance, l.projected || 0, l.used) || 1;
+        const pct = (x) => `${Math.min(Math.max(x / top * 100, 0), 100).toFixed(1)}%`;
+        leaseHtml = `
+          <div class="meter${l.state !== "ok" ? " over" : ""}" role="img" aria-label="${esc(`Used ${miles(l.used)} of ${miles(l.allowance)} allowed miles`)}">
+            ${l.projected !== null ? `<i class="proj" style="width:${pct(l.projected)}"></i>` : ""}<i class="used" style="width:${pct(l.used)}"></i><span class="limit" style="left:calc(${pct(l.allowance)} - 1px)"></span>
+          </div>
+          <div class="meterkey"><span style="--k:var(--accent)">Used ${miles(l.used)}</span><span style="--k:${l.state !== "ok" ? "var(--bad-bg)" : "var(--blue)"}">Projected ${l.projected !== null ? miles(l.projected) : "–"}</span><span style="--k:var(--ink)">Allowance ${miles(l.allowance)}</span></div>
+          <div class="dl">
+            ${d("Allowance", `${miles(l.annual)} a year · ${miles(l.allowance)} over the lease`)}
+            ${d("Used so far", `${miles(l.used)} · allowed by now ${miles(l.toDate)}`)}
+            ${d("Current pace", l.perYear !== null ? `${miles(l.perYear)} miles a year` : "Need 2 weeks of readings")}
+            ${d("At lease end", l.projected !== null ? `${miles(l.projected)} miles (${l.over > 0 ? `${miles(l.over)} over` : `${miles(-l.over)} under`})` : "–")}
+            ${d("Miles left", miles(l.left))}
+            ${d("Excess charge", l.ppm !== null ? `${l.ppm}p a mile${l.overCost ? ` · about ${money(l.overCost)} at this pace` : ""}` : "Not set")}
+          </div>`;
+      }
+    }
+
+    box.innerHTML = `
+      <div class="card" style="display:grid;gap:12px">
+        <div class="vanhead">
+          <div class="who">${plate(v, true)}<div><h2>${esc(v.model || "Van")}</h2><span class="small">${esc(FUEL[v.fuel] || "")} · ${esc(v.depot || "No depot")}${v.fdCode ? ` · ${esc(v.fdCode)}` : ""}${v.driverName ? ` · driven by <b>${esc(v.driverName)}</b>` : " · no driver assigned"}</span></div></div>
+          <div class="actions">${statusChip(v.status)}<button class="mini go" type="button" data-log-van="${esc(v.id)}">Log an event</button><button class="mini" type="button" data-issue-van="${esc(v.id)}">Report issue</button><button class="mini" type="button" data-vedit="${esc(v.id)}">Edit van</button><button class="mini" type="button" data-vback="1">All vans</button></div>
+        </div>
+        ${v.status && v.status !== "road" ? `<div class="flag ${v.status === "gone" ? "info" : v.status === "repair" ? "warn" : ""}">${esc(STATUS[v.status])}${isDate(v.statusSince) ? ` since ${esc(medD(v.statusSince))} (${plural(daysBetween(v.statusSince, todayS()), "day")})` : ""}${v.statusNote ? ` · ${esc(v.statusNote)}` : ""}</div>` : ""}
+        ${v.alerts.length ? `<div class="flags">${v.alerts.slice().sort(sortAlerts).map((a) => `<div class="flag ${a.level === "overdue" ? "" : a.level === "due" ? "warn" : "info"}">${levelChip(a.level)} ${esc(a.text)}</div>`).join("")}</div>` : `<div class="flag info">Nothing due in the next ${S.settings.alertDays} days.</div>`}
+      </div>
+
+      <section class="tiles" aria-label="This van's totals">
+        <div class="tile main"><span class="eyebrow">Mileage</span><b>${miles(v.current)}</b><small>${v.last ? `read ${esc(medD(v.last.date))}` : "no reading yet"}${v.rate ? ` · ~${miles(v.rate * 7)} a week` : ""}</small></div>
+        <div class="tile minus"><span class="eyebrow">Maintenance · 12 months</span><b>${money(tYr.biz)}</b><small>${money(tAll.biz)} all time</small></div>
+        <div class="tile"><span class="eyebrow">Days off road · 12 months</span><b>${intF.format(tYr.days)}</b><small>${intF.format(tAll.days)} all time</small></div>
+        <div class="tile ${v.issues.length ? "warn" : ""}"><span class="eyebrow">Open issues</span><b>${v.issues.length}</b><small>${issues.length - v.issues.length} fixed</small></div>
+      </section>
+
+      <div class="grid2">
+        <article class="block"><div class="block-head"><h3>Key dates</h3></div><div class="block-body"><div class="dl">
+          ${d("MOT due", `${esc(medD(v.motDue))}${v.motAuto ? " <span class='small'>(first MOT, 3 years from registration)</span>" : ""}`)}
+          ${d("First registered", esc(medD(v.firstReg)))}
+          ${d("Last service", `${esc(medD(v.lastServiceDate))}${has(v.lastServiceMiles) ? ` at ${miles(num(v.lastServiceMiles))} mi` : ""}`)}
+          ${d("Next service", `${isDate(v.nextServiceDate) ? esc(medD(v.nextServiceDate)) : ""}${isDate(v.nextServiceDate) && has(v.nextServiceMiles) ? " or " : ""}${has(v.nextServiceMiles) ? `${miles(num(v.nextServiceMiles))} mi` : ""}${!isDate(v.nextServiceDate) && !has(v.nextServiceMiles) ? "–" : ""}${v.svcLeft !== null ? ` <span class="small">(${v.svcLeft >= 0 ? miles(v.svcLeft) + " to go" : miles(-v.svcLeft) + " over"})</span>` : ""}`)}
+          ${d("Service interval", [has(v.svcMonths) && num(v.svcMonths) ? `${num(v.svcMonths)} months` : "", has(v.svcMilesInt) && num(v.svcMilesInt) ? `${miles(num(v.svcMilesInt))} miles` : ""].filter(Boolean).join(" or ") || "–")}
+          ${d("Road tax due", esc(medD(v.taxDue)))}
+          ${d("Insurance renewal", esc(medD(v.insRenewal)))}
+          ${v.ownership === "leased" ? d("Lease end", esc(medD(v.leaseEnd))) : ""}
+        </div></div></article>
+
+        <article class="block"><div class="block-head"><h3>Insurance and cover</h3></div><div class="block-body"><div class="dl">
+          ${d("Provider", esc(v.insurer || "–"))}
+          ${d("Policy number", esc(v.policyNo || "–"))}
+          ${d("Renewal", esc(medD(v.insRenewal)))}
+          ${d("Annual premium", has(v.insPremium) ? `${money(num(v.insPremium))} <span class="small">(${money(num(v.insPremium) / 13)} per 4 weeks)</span>` : "–")}
+          ${d("Breakdown cover", esc(breakdown || "–"))}
+          ${d("VIN", esc(v.vin || "–"))}
+        </div></div></article>
+
+        <article class="block"><div class="block-head"><h3>${v.ownership === "leased" ? "Lease and mileage" : "Owned"}</h3>${v.ownership === "leased" ? `<span class="meta">${leaseChip(v)}</span>` : ""}</div><div class="block-body">
+          ${v.ownership === "leased" ? `<div class="dl">
+            ${d("Lease company", esc(v.leaseCo || "–"))}
+            ${d("Monthly cost", has(v.leaseMonthly) ? `${money(num(v.leaseMonthly))} <span class="small">(${money(num(v.leaseMonthly) * 12 / 13)} per 4 weeks)</span>` : "–")}
+            ${d("Lease", `${esc(medD(v.leaseStart))} to ${esc(medD(v.leaseEnd))}`)}
+            ${d("Maintenance", v.leaseMaint ? "Included in the lease" : "Paid by the business")}
+          </div>${leaseHtml}` : `<p class="note">This van is owned, so there's no mileage allowance.</p>`}
+        </div></article>
+
+        <article class="block"><div class="block-head"><h3>Tyres${v.ev || v.fuel === "hybrid" ? " and battery" : ""}</h3></div><div class="block-body"><div class="dl">
+          ${d("Tyres last changed", esc(medD(v.tyreLast)))}
+          ${d("Tyre notes", esc(v.tyreNotes || "–"))}
+          ${v.ev || v.fuel === "hybrid" ? d("Battery health", has(v.soh) ? `${num(v.soh)}%` : "–") + d("Real-world range", has(v.rangeMiles) ? `${miles(num(v.rangeMiles))} miles` : "–") + d("Battery notes", esc(v.battNotes || "–")) : ""}
+          ${d("Other notes", esc(v.notes || "–"))}
+        </div></div></article>
+      </div>
+
+      <article class="block">
+        <div class="block-head"><h3>Issues</h3><span class="meta">Everything reported on this van, open first.</span></div>
+        <div class="scroll"><table data-issue-table="1">${issueRows(issues, true)}</table></div>
+      </article>
+
+      <article class="block">
+        <div class="block-head"><h3>Event log</h3><span class="meta">${plural(evs.length, "event")} · ${money(tAll.biz)} maintenance · ${intF.format(tAll.days)} days off road</span></div>
+        <div class="scroll"><table data-ev-table="1">${eventsTable(evs, true, false)}</table></div>
+      </article>
+
+      <div class="grid2">
+        <article class="block">
+          <div class="block-head"><h3>Driver history</h3><span class="meta">Who's driven it, newest first.</span></div>
+          <div class="scroll"><table>${hist.length ? `<thead><tr><th class="l">Driver</th><th class="l">From</th><th class="l">To</th><th>Days</th></tr></thead><tbody>${hist.map((a) => `<tr><td class="l name">${esc(driverName(a.driverId) || "Unknown")}</td><td class="l">${esc(medD(a.from))}</td><td class="l">${a.to ? esc(medD(a.to)) : `<span class="chip ok">Now</span>`}</td><td>${isDate(a.from) ? daysBetween(a.from, a.to || todayS()) + 1 : "–"}</td></tr>`).join("")}</tbody>` : `<tbody><tr><td class="l"><span class="small">No drivers recorded yet.</span></td></tr></tbody>`}</table></div>
+        </article>
+        <article class="block">
+          <div class="block-head"><h3>Mileage readings</h3><span class="meta">The last 10.</span></div>
+          <div class="scroll"><table>${v.rs.length ? `<thead><tr><th class="l">Date</th><th>Mileage</th><th>Since last</th><th class="l">From</th></tr></thead><tbody>${v.rs.slice(-10).reverse().map((r, i, arr) => `<tr><td class="l">${esc(medD(r.date))}</td><td>${miles(r.miles)}</td><td>${arr[i + 1] ? miles(r.miles - arr[i + 1].miles) : "–"}</td><td class="l">${r.src === "event" ? "Event" : "Reading"}</td></tr>`).join("")}</tbody>` : `<tbody><tr><td class="l"><span class="small">No readings yet.</span></td></tr></tbody>`}</table></div>
+        </article>
+      </div>
+
+      <article class="block">
+        <div class="block-head"><h3>Damage claims</h3><span class="meta">From the Damages &amp; Claims log (imported under FDs, drivers &amp; rules). Not added to maintenance, so the P&amp;L doesn't count them twice.</span></div>
+        <div class="scroll"><table>${claimsTable(claims)}</table></div>
+      </article>
+
+      <article class="block">
+        <div class="block-head"><h3>Documents and photos</h3><span class="meta">Kept with the van. Invoices and photos on events and issues are kept with those.</span></div>
+        <div class="block-body">${attList(v.attachments || [], null)}${S.canWrite ? `<div class="attadd">${S.assets ? `<span class="btn filebtn">Add files<input type="file" multiple accept="image/*,application/pdf" data-direct="van" aria-label="Add files to this van"></span>` : ""}<span class="small">${S.assets ? "Photos, PDFs." : "Edit the van to add links to documents."}</span></div><p class="msg" id="vDirectMsg" role="status"></p>` : ""}</div>
+      </article>`;
+  }
+  function claimsTable(claims) {
+    if (!claims.length) return `<tbody><tr><td class="l"><span class="small">${S.claims.length ? "No claims for this van." : "No claims imported yet."}</span></td></tr></tbody>`;
+    return `<thead><tr><th class="l">Incident</th><th class="l">Driver</th><th class="l">Type</th><th class="l">DPD ref</th><th class="l">Description</th><th>Total</th><th>Absorbed</th><th class="l">Status</th><th class="l">Linked event</th></tr></thead><tbody>` +
+      claims.map((c) => { const ev = S.events.find((e) => e.claimKey === c.id || (c.dpdRef && String(e.claimRef || "").toLowerCase() === c.dpdRef.toLowerCase())); return `<tr><td class="l">${esc(shortD(c.incidentDate))}</td><td class="l">${esc(c.driver || "–")}</td><td class="l">${esc(c.type || "–")}</td><td class="l">${esc(c.dpdRef || "–")}</td><td class="wrapcell">${esc(c.description || "")}${safeUrl(c.evidenceUrl) ? ` <a href="${esc(safeUrl(c.evidenceUrl))}" target="_blank" rel="noopener noreferrer">Photos</a>` : ""}</td><td>${mOrDash(num(c.total))}</td><td>${mOrDash(num(c.absorbed))}</td><td class="l"><span class="chip ${c.status === "Closed" ? "ok" : ""}">${esc(c.status || "–")}</span></td><td class="l">${ev ? `<button class="mini" type="button" data-eopen="${esc(ev.id)}">${esc(shortD(ev.date))} ${esc(ETYPES[ev.type] || "")}</button>` : "–"}</td></tr>`; }).join("") + `</tbody>`;
+  }
+
+  // ---------- events table (shared) ----------
+  function eventsTable(list, full, showVan = true) {
+    if (!list.length) return `<tbody><tr><td class="l"><span class="small">No events for this selection.</span></td></tr></tbody>`;
+    const head = `<thead><tr><th class="l">Date</th>${showVan ? `<th class="l">Van</th><th class="l">Depot</th>` : ""}<th class="l">Type</th><th class="l">Description</th><th class="l">Garage</th><th>Mileage</th><th>Cost</th><th class="l">Paid by</th><th>Days off</th><th class="l">Driver</th><th class="l">Claim</th><th>Files</th>${full ? "<th></th>" : ""}</tr></thead>`;
+    return head + `<tbody>` + list.map((e) => `<tr class="click${ui.aDetail === e.id ? " sel" : ""}" data-eopen="${esc(e.id)}">
+      <td class="l">${esc(shortD(e.date))}</td>${showVan ? `<td class="l">${plate(e.van || { reg: e.reg })}</td><td class="l">${esc(e.depot || "–")}</td>` : ""}
+      <td class="l">${typeChip(e.type)}${e.type === "mot" && e.motResult ? ` <span class="small">${esc(MOTRES[e.motResult] || "")}</span>` : ""}</td><td class="wrapcell">${esc(e.description)}</td><td class="l">${esc(e.garage || "–")}</td>
+      <td>${has(e.mileage) && num(e.mileage) ? miles(num(e.mileage)) : "–"}</td><td>${e.cost ? money(e.cost) : "–"}${e.biz > 0.004 && e.paid === false ? ` <span class="chip warn">Unpaid</span>` : ""}</td><td class="l">${e.cost ? esc(PAIDBY[e.paidBy || "business"]) : "–"}</td>
+      <td>${e.days || "–"}</td><td class="l">${esc(e.driverName || "–")}</td><td class="l">${e.claim ? esc(e.claim.dpdRef || shortD(e.claim.incidentDate)) : "–"}</td><td>${(e.attachments || []).length || "–"}</td>
+      ${full ? `<td><div class="rowbtns"><button class="mini" type="button" data-eedit="${esc(e.id)}">Edit</button><button class="mini" type="button" data-edel="${esc(e.id)}">Delete</button></div></td>` : ""}
+    </tr>`).join("") + `</tbody>`;
+  }
+
+  // ============================================================ VAN FORM
+  function fillVanPickers(v) {
+    const depots = S.settings.depots || [];
+    const dv = v ? v.depot : $("vDepot").value;
+    $("vDepot").innerHTML = [...new Set(depots.concat(dv ? [dv] : []))].map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+    if (dv) $("vDepot").value = dv;
+    const fv = v ? (v.fdId || "") : $("vFd").value;
+    $("vFd").innerHTML = `<option value="">None</option>` + byName(S.fds.filter((f) => f.active !== false || f.id === fv), "code").map((f) => `<option value="${esc(f.id)}">${esc(f.code)} · ${esc(f.depot)}</option>`).join("");
+    $("vFd").value = fv;
+    const drv = v ? (v.driverId || "") : $("vDriver").value;
+    $("vDriver").innerHTML = `<option value="">No driver</option>` + byName(S.drivers.filter((d) => d.active !== false || d.id === drv), "name").map((d) => `<option value="${esc(d.id)}">${esc(d.name)}${d.depot ? " · " + esc(d.depot) : ""}</option>`).join("");
+    $("vDriver").value = drv;
+  }
+  const VFIELDS = [
+    ["vReg", "reg"], ["vModel", "model"], ["vFuel", "fuel"], ["vFirstReg", "firstReg"], ["vVin", "vin"], ["vStatus", "status"], ["vStatusSince", "statusSince"], ["vStatusNote", "statusNote"],
+    ["vLeaseCo", "leaseCo"], ["vLeaseMonthly", "leaseMonthly", 1], ["vLeaseStart", "leaseStart"], ["vLeaseEnd", "leaseEnd"], ["vAnnual", "annualMiles", 1], ["vLeaseStartMiles", "leaseStartMiles", 1], ["vExcessPpm", "excessPpm", 1],
+    ["vInsCo", "insurer"], ["vPolicy", "policyNo"], ["vInsRenew", "insRenewal"], ["vInsPremium", "insPremium", 1], ["vBreakdown", "breakdown"], ["vTax", "taxDue"],
+    ["vMot", "motDue"], ["vSvcLast", "lastServiceDate"], ["vSvcLastMiles", "lastServiceMiles", 1], ["vSvcNext", "nextServiceDate"], ["vSvcNextMiles", "nextServiceMiles", 1], ["vSvcMonths", "svcMonths", 1], ["vSvcMilesInt", "svcMilesInt", 1],
+    ["vTyreLast", "tyreLast"], ["vTyreNotes", "tyreNotes"], ["vSoh", "soh", 1], ["vRange", "rangeMiles", 1], ["vBattNotes", "battNotes"], ["vNotes", "notes"],
+  ];
+  function openVanForm(id) {
+    const v = id ? vanById(id) : null;
+    discardFresh("van");
+    ui.vEditing = v ? v.id : null; ui.vFormOpen = true;
+    $("vanForm").reset();
+    fillVanPickers(v);
+    for (const [el, k] of VFIELDS) if (v) $(el).value = v[k] ?? "";
+    if (!v) { $("vFuel").value = "electric"; $("vStatus").value = "road"; $("vDriverFrom").value = todayS(); $("vMilesDate").value = todayS(); }
+    else { $("vDriverFrom").value = todayS(); $("vMilesDate").value = todayS(); }
+    if (v) $("vDepot").value = v.depot || "";
+    $("vOwned").checked = v ? v.ownership !== "leased" : false; $("vLeased").checked = v ? v.ownership === "leased" : true;
+    $("vLeaseMaint").checked = !!(v && v.leaseMaint);
+    $("vReg").value = v ? regShow(v.reg) : "";
+    ui.att.van = (v && v.attachments ? v.attachments.map((a) => ({ ...a })) : []); ui.attRemoved.van = [];
+    $("vFormTitle").textContent = v ? `Edit ${regShow(v.reg)}` : "Add a van";
+    $("vSave").textContent = v ? "Save changes" : "Save van";
+    $("vDelete").hidden = !v;
+    $("vMilesNote").textContent = v ? `Leave blank unless you want to add a new reading (currently ${miles(fleet().map.get(v.id).current)}).` : "Saved as the first mileage reading. Keep it up to date on the Mileage tab.";
+    setMsg($("vMsg"), "");
+    showTab("vans");
+    syncVanForm(); renderAtt("van");
+    $("vReg").focus();
+  }
+  function closeVanForm() { discardFresh("van"); ui.vFormOpen = false; ui.vEditing = null; render(); }
+  function syncVanForm() {
+    $("leaseBox").hidden = !$("vLeased").checked;
+    $("battBox").hidden = !["electric", "hybrid"].includes($("vFuel").value);
+    const fr = $("vFirstReg").value;
+    $("vMotNote").textContent = isDate(fr) && !$("vMot").value ? `First MOT due ${medD(addYears(fr, 3))} (3 years from first registration). Leave blank to use that.` : isDate(fr) ? `First MOT was due ${medD(addYears(fr, 3))}. After that it's yearly.` : "Leave blank for a van's first MOT and it's worked out as 3 years from first registration.";
+    const v = ui.vEditing && vanById(ui.vEditing);
+    const changed = v && ($("vDriver").value || "") !== (v.driverId || "");
+    $("vDriverNote").textContent = changed ? `${driverName(v.driverId) || "No driver"} → ${driverName($("vDriver").value) || "no driver"} from ${medD($("vDriverFrom").value)}. The change goes into the driver history.` : "Change the driver here and the old one moves into the van's driver history.";
+  }
+  async function saveVan(e) {
+    e.preventDefault();
+    const msg = $("vMsg");
+    if (!S.canWrite || !S.db) { setMsg(msg, "You can't change this log.", "err"); return; }
+    const old = ui.vEditing ? vanById(ui.vEditing) : null;
+    const doc = old ? strip(old) : {};
+    for (const [el, k, isNum] of VFIELDS) { const raw = $(el).value; doc[k] = isNum ? numOrNull(raw) : String(raw || "").trim(); }
+    doc.reg = regShow(doc.reg);
+    doc.depot = $("vDepot").value; doc.fdId = $("vFd").value || "";
+    doc.ownership = $("vLeased").checked ? "leased" : "owned";
+    doc.leaseMaint = $("vLeaseMaint").checked;
+    const newDriver = $("vDriver").value || "";
+    const from = $("vDriverFrom").value || todayS();
+    const mi = numOrNull($("vMiles").value), miDate = $("vMilesDate").value || todayS();
+    const missing = [];
+    if (!doc.reg) missing.push("reg");
+    if (!doc.model) missing.push("make / model");
+    if (!doc.depot) missing.push("depot");
+    if (missing.length) { setMsg(msg, "Add the " + missing.join(", ") + ".", "err"); return; }
+    if (S.vans.some((v) => v.id !== ui.vEditing && regKey(v.reg) === regKey(doc.reg))) { setMsg(msg, `There's already a van with reg ${doc.reg}.`, "err"); return; }
+    if (doc.ownership === "leased" && isDate(doc.leaseStart) && isDate(doc.leaseEnd) && doc.leaseEnd <= doc.leaseStart) { setMsg(msg, "The lease end must be after the lease start.", "err"); return; }
+    if (mi !== null && old) { const cur = fleet().map.get(old.id); if (cur.last && miDate >= cur.last.date && mi < cur.last.miles) { setMsg(msg, `That mileage is lower than the last reading (${miles(cur.last.miles)} on ${medD(cur.last.date)}).`, "err"); return; } }
+    if (old && (old.status || "road") !== doc.status && !$("vStatusSince").value) doc.statusSince = todayS();
+    if (!old && doc.status !== "road" && !doc.statusSince) doc.statusSince = todayS();
+    doc.driverId = newDriver;
+    doc.attachments = cleanAtt(ui.att.van);
+    doc.savedAt = new Date().toISOString();
+    $("vSave").disabled = true;
+    try {
+      const ref = old ? S.db.collection("vans").doc(old.id) : S.db.collection("vans").doc();
+      await ref.set(doc);
+      const id = old ? old.id : ref.id;
+      if ((old ? old.driverId || "" : "") !== newDriver) await changeDriver(id, newDriver, from);
+      if (mi !== null) await S.db.collection("mileage").add({ vanId: id, date: miDate, miles: mi, savedAt: doc.savedAt });
+      await dropRemoved("van");
+      ui.att.van = []; ui.vFormOpen = false; ui.vEditing = null; ui.vDetail = id;
+      setMsg($("vListMsg"), old ? `Saved ${doc.reg}.` : `Added ${doc.reg}.`, "ok");
+      render();
+    } catch (err) { setMsg(msg, writeErr(err), "err"); }
+    finally { $("vSave").disabled = !S.canWrite; }
+  }
+  async function changeDriver(vanId, driverId, from) {
+    for (const a of S.assignments.filter((x) => x.vanId === vanId && !x.to)) {
+      const to = addDays(from, -1);
+      await S.db.collection("assignments").doc(a.id).set({ ...strip(a), to: to < a.from ? a.from : to });
+    }
+    if (driverId) await S.db.collection("assignments").add({ vanId, driverId, from, to: "" });
+  }
+  async function deleteVan(btn) {
+    const v = vanById(ui.vEditing); if (!v) return;
+    const n = S.events.filter((e) => e.vanId === v.id).length + S.issues.filter((i) => i.vanId === v.id).length;
+    if (n) { setMsg($("vMsg"), `${regShow(v.reg)} has ${plural(n, "event or issue")} logged. Set its status to “Off fleet” instead so the history stays.`, "err"); return; }
+    if (!arm(btn)) return;
+    try {
+      for (const a of S.assignments.filter((x) => x.vanId === v.id)) await S.db.collection("assignments").doc(a.id).delete();
+      for (const m of S.mileage.filter((x) => x.vanId === v.id)) await S.db.collection("mileage").doc(m.id).delete();
+      await S.db.collection("vans").doc(v.id).delete();
+      for (const a of v.attachments || []) await dropAsset(a);
+      ui.vFormOpen = false; ui.vEditing = null; ui.vDetail = null; ui.att.van = [];
+      setMsg($("vListMsg"), `Deleted ${regShow(v.reg)}.`, "ok"); render();
+    } catch (_) { setMsg($("vMsg"), "Couldn't delete. Try again.", "err"); }
+  }
+
+  // ============================================================ ATTACHMENTS
+  // Files go to the artifact's file store; each record keeps the asset id. Links are kept as plain URLs.
+  const attSrc = (a) => (a.id ? "/_blob/" + a.id : safeUrl(a.url));
+  const isImg = (a) => a.id && /^image\//.test(a.type || "");
+  function attList(list, key) {
+    if (!list.length) return `<p class="note">No files yet.</p>`;
+    return `<div class="atts">${list.map((a, i) => {
+      const src = attSrc(a);
+      const thumb = isImg(a) ? `<button type="button" class="thumb" data-view="${esc(src)}" data-vname="${esc(a.name)}" aria-label="View ${esc(a.name)}"><img src="${esc(src)}" alt="${esc(a.name)}" loading="lazy"></button>`
+        : `<a class="thumb" href="${esc(src)}" target="_blank" rel="noopener noreferrer">${a.id ? (/pdf/.test(a.type || "") ? "PDF" : "File") : "Link"}</a>`;
+      return `<div class="att">${thumb}<span class="attname" title="${esc(a.name)}">${esc(a.name)}</span>${key ? `<button type="button" class="mini" data-attdel="${key}:${i}">Remove</button>` : ""}</div>`;
+    }).join("")}</div>`;
+  }
+  function attControls(key) {
+    const box = document.querySelector(`[data-att="${key}"]`);
+    box.innerHTML = `<div data-attlist="${key}"></div>
+      <div class="attadd">
+        <span class="btn filebtn" data-attpick="${key}">Add photos / PDFs<input type="file" multiple accept="image/*,application/pdf" data-attfile="${key}" aria-label="Add photos or PDFs"></span>
+        <input type="url" id="attUrl-${key}" placeholder="or paste a link (Drive, OneDrive…)" autocomplete="off" aria-label="Link to a file">
+        <button class="mini" type="button" data-attlink="${key}">Add link</button>
+      </div>
+      <p class="msg" id="attMsg-${key}" role="status"></p>`;
+  }
+  function renderAtt(key) {
+    const el = document.querySelector(`[data-attlist="${key}"]`);
+    if (el) el.innerHTML = attList(ui.att[key], key);
+    const pick = document.querySelector(`[data-attpick="${key}"]`);
+    if (pick) pick.hidden = !S.assets;
+  }
+  const cleanAtt = (list) => list.map(({ fresh, ...a }) => a);
+  async function shrinkImage(file) {
+    try {
+      const bmp = await createImageBitmap(file);
+      const max = 1800, s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+      if (s === 1 && file.size < 1.5e6 && file.type === "image/jpeg") return null;
+      const c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+      c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+      return await new Promise((res) => c.toBlob(res, "image/jpeg", 0.82));
+    } catch (_) { return null; }
+  }
+  function uploadErr(err, name) {
+    const c = err && err.code;
+    if (c === "too_large") return `${name} is too big (20 MB max).`;
+    if (c === "unsupported_type") return `${name} isn't a photo or PDF this log can keep. Try a JPG, PNG or PDF.`;
+    if (c === "quota_or_state") return "The file store is full. Remove old files you don't need.";
+    if (c === "rate_limited") return "Too many uploads at once. Wait a moment and try again.";
+    return `Couldn't upload ${name}. Try again.`;
+  }
+  async function uploadFile(f) {
+    let blob = f, type = f.type || "";
+    if (/^image\//.test(type) || /\.(jpe?g|png|heic|heif|webp)$/i.test(f.name)) {
+      const small = await shrinkImage(f);
+      if (small) { blob = small; type = "image/jpeg"; }
+    }
+    if (!type && /\.pdf$/i.test(f.name)) type = "application/pdf";
+    const r = await S.assets.upload(blob, type ? { type } : undefined);
+    return { id: r.id, name: f.name, type: r.contentType, size: r.sizeBytes, at: todayS() };
+  }
+  async function addFiles(key, files) {
+    const msg = $("attMsg-" + key);
+    if (!S.assets) { setMsg(msg, "Uploading needs edit access on the published page. Paste a link instead.", "err"); return; }
+    let n = 0;
+    for (const f of files) {
+      setMsg(msg, `Uploading ${f.name}…`);
+      try { ui.att[key].push({ ...(await uploadFile(f)), fresh: true }); n++; renderAtt(key); }
+      catch (err) { setMsg(msg, uploadErr(err, f.name), "err"); return; }
+    }
+    setMsg(msg, n ? `${plural(n, "file")} added. Save to keep ${n === 1 ? "it" : "them"}.` : "", "ok");
+  }
+  function addLink(key) {
+    const inp = $("attUrl-" + key), msg = $("attMsg-" + key);
+    const u = safeUrl(inp.value);
+    if (!u) { setMsg(msg, "Links should start with https://", "err"); return; }
+    let name = u; try { const p = new URL(u); name = p.hostname.replace(/^www\./, "") + (p.pathname.length > 1 ? "…" : ""); } catch (_) {}
+    ui.att[key].push({ url: u, name, type: "link", at: todayS() });
+    inp.value = ""; setMsg(msg, "Link added. Save to keep it.", "ok"); renderAtt(key);
+  }
+  function removeAtt(key, i) {
+    const a = ui.att[key][i]; if (!a) return;
+    ui.att[key].splice(i, 1);
+    if (a.id) { if (a.fresh) dropAsset(a); else ui.attRemoved[key].push(a); }
+    renderAtt(key);
+  }
+  async function dropAsset(a) { if (a && a.id && S.assets) { try { await S.assets.delete(a.id); } catch (_) {} } }
+  function discardFresh(key) { for (const a of ui.att[key] || []) if (a.fresh) dropAsset(a); ui.att[key] = []; ui.attRemoved[key] = []; }
+  async function dropRemoved(key) { for (const a of ui.attRemoved[key]) await dropAsset(a); ui.attRemoved[key] = []; }
+  async function addDirect(input) {
+    const v = vanById(ui.vDetail); const msg = $("vDirectMsg");
+    if (!v || !S.assets) return;
+    const added = [];
+    for (const f of input.files) {
+      setMsg(msg, `Uploading ${f.name}…`);
+      try { added.push(await uploadFile(f)); } catch (err) { setMsg(msg, uploadErr(err, f.name), "err"); break; }
+    }
+    if (!added.length) return;
+    try { await S.db.collection("vans").doc(v.id).set({ ...strip(v), attachments: (v.attachments || []).concat(added) }); setMsg(msg, `${plural(added.length, "file")} added.`, "ok"); }
+    catch (err) { for (const a of added) dropAsset(a); setMsg(msg, writeErr(err), "err"); }
+  }
+  function viewImage(src, name) { $("lbImg").src = src; $("lbImg").alt = name || "Photo"; $("lbName").textContent = name || ""; $("lightbox").hidden = false; $("lbClose").focus(); }
+  function closeImage() { $("lightbox").hidden = true; $("lbImg").removeAttribute("src"); }
+
+  // ============================================================ LOG AN EVENT
+  function fillEventPickers() {
+    const ev = ui.eEditing && byId(S.events, ui.eEditing);
+    const cur = $("eVan").value;
+    const vans = fleet().vans.filter((v) => !v.gone || (ev && ev.vanId === v.id));
+    const depots = [...new Set(vans.map((v) => v.depot))];
+    $("eVan").innerHTML = `<option value="">${vans.length ? "Pick a van" : "Add vans first"}</option>` + depots.map((d) => `<optgroup label="${esc(d || "No depot")}">${vans.filter((v) => v.depot === d).map((v) => `<option value="${esc(v.id)}">${esc(v.reg)} · ${esc(v.model || "")}${v.driverName ? " · " + esc(v.driverName) : ""}</option>`).join("")}</optgroup>`).join("");
+    $("eVan").value = cur;
+    const garages = [...new Map(S.events.map((e) => String(e.garage || "").trim()).filter(Boolean).map((g) => [g.toLowerCase(), g])).values()].sort();
+    $("dlGarages").innerHTML = garages.map((g) => `<option value="${esc(g)}">`).join("");
+  }
+  function fillEventLinks() {
+    const v = vanById($("eVan").value);
+    const ev = ui.eEditing && byId(S.events, ui.eEditing);
+    const keepClaim = $("eClaim").value || (ev && ev.claimKey) || "";
+    const claims = v ? S.claims.filter((c) => regKey(c.vanReg) === regKey(v.reg)) : [];
+    $("eClaim").innerHTML = `<option value="">${claims.length ? "None" : S.claims.length ? "No imported claims for this van" : "No claims imported yet"}</option>` + claims.map((c) => `<option value="${esc(c.id)}">${esc(shortD(c.incidentDate))} · ${esc(c.type || "")}${c.dpdRef ? " · " + esc(c.dpdRef) : ""} · ${esc(String(c.description || "").slice(0, 40))}</option>`).join("");
+    $("eClaim").value = keepClaim; if ($("eClaim").value !== keepClaim) $("eClaim").value = "";
+    const prev = new Set([...document.querySelectorAll("#eIssues [data-fix]:checked")].map((x) => x.dataset.fix));
+    const initial = ui.eLinkInit; ui.eLinkInit = false;
+    const issues = v ? S.issues.filter((i) => i.vanId === v.id && (i.status !== "fixed" || (ev && i.eventId === ev.id))) : [];
+    $("eIssues").innerHTML = issues.length ? `<span class="eyebrow">This fixes</span>` + issues.map((i) => `<label class="check" for="fx-${esc(i.id)}"><input type="checkbox" id="fx-${esc(i.id)}" data-fix="${esc(i.id)}"${prev.has(i.id) || (initial && ev && i.eventId === ev.id) || ui.prefixIssue === i.id ? " checked" : ""}> ${esc(i.description)} <span class="small">· ${esc(shortD(i.date))}</span></label>`).join("") : `<p class="note">${v ? "No open issues on this van." : "Pick a van to see its open issues."}</p>`;
+    ui.prefixIssue = null;
+  }
+  function eventFormDoc() {
+    const v = vanById($("eVan").value);
+    const tyres = [...document.querySelectorAll("#tyreBox [data-tyre]:checked")].map((x) => x.dataset.tyre);
+    const date = $("eDate").value;
+    return {
+      vanId: v ? v.id : "", reg: v ? regShow(v.reg) : "", depot: v ? v.depot : "", fdId: v ? (v.fdId || "") : "",
+      driverId: v && isDate(date) ? (driverAt(v.id, date) || (date >= todayS() ? v.driverId || "" : "")) : "",
+      date, type: $("eType").value, description: $("eDesc").value.trim(), garage: $("eGarage").value.trim(),
+      mileage: numOrNull($("eMiles").value), cost: numOrNull($("eCost").value), paidBy: $("ePaidBy").value, invoiceNo: $("eInvoice").value.trim(),
+      paid: $("ePaid").checked, daysOff: numOrNull($("eDays").value), statusAfter: $("eStatus").value,
+      motResult: $("eType").value === "mot" ? $("eMotResult").value : "", motNext: $("eType").value === "mot" ? $("eMotNext").value : "",
+      svcNext: $("eType").value === "service" ? $("eSvcNext").value : "", svcNextMiles: $("eType").value === "service" ? numOrNull($("eSvcNextMiles").value) : null,
+      tyres: $("eType").value === "tyres" ? tyres : [], tyreNotes: $("eType").value === "tyres" ? $("eTyreNotes").value.trim() : "",
+      claimKey: $("eClaim").value || "", claimRef: $("eClaimRef").value.trim(),
+      fixes: [...document.querySelectorAll("#eIssues [data-fix]:checked")].map((x) => x.dataset.fix),
+    };
+  }
+  // What saving the event changes on the van.
+  function vanUpdates(d, v) {
+    const u = {}, lines = [];
+    if (!v) return { u, lines };
+    const isLatest = !S.events.some((e) => e.vanId === v.id && e.type === d.type && e.id !== ui.eEditing && e.date > d.date);
+    if (d.type === "mot" && isDate(d.motNext)) { u.motDue = d.motNext; lines.push(`MOT due → ${medD(d.motNext)}`); }
+    if (d.type === "service" && isLatest) {
+      u.lastServiceDate = d.date; lines.push(`Last service → ${medD(d.date)}`);
+      if (has(d.mileage)) u.lastServiceMiles = d.mileage;
+      u.nextServiceDate = isDate(d.svcNext) ? d.svcNext : ""; u.nextServiceMiles = has(d.svcNextMiles) ? d.svcNextMiles : null;
+      lines.push(`Next service → ${[isDate(d.svcNext) ? medD(d.svcNext) : "", has(d.svcNextMiles) ? miles(d.svcNextMiles) + " miles" : ""].filter(Boolean).join(" or ") || "not set"}`);
+    }
+    if (d.type === "tyres" && isLatest) { u.tyreLast = d.date; lines.push(`Tyres last changed → ${medD(d.date)}`); if (d.tyreNotes) { u.tyreNotes = d.tyreNotes; lines.push("Tyre notes updated"); } }
+    if (d.statusAfter && d.statusAfter !== (v.status || "road")) { u.status = d.statusAfter; u.statusSince = d.statusAfter === "road" ? d.date : d.date; u.statusNote = d.statusAfter === "road" ? "" : (d.garage ? `At ${d.garage}` : v.statusNote || ""); lines.push(`Status → ${STATUS[d.statusAfter]}`); }
+    return { u, lines };
+  }
+  function syncEventForm() {
+    const t = $("eType").value;
+    $("motBox").hidden = t !== "mot"; $("svcBox").hidden = t !== "service"; $("tyreBox").hidden = t !== "tyres";
+    const v = vanById($("eVan").value), date = $("eDate").value;
+    const vc = v && fleet().map.get(v.id);
+    const drv = v && isDate(date) ? (driverAt(v.id, date) || v.driverId) : "";
+    $("eDriverLine").textContent = v ? `${regShow(v.reg)} · ${v.depot || "no depot"}${vc && vc.fdCode ? " · " + vc.fdCode : " · no FD set (costs won't reach an FD on the P&L)"}${drv ? ` · driver on the day: ${driverName(drv)}` : ""}${vc && vc.current !== null ? ` · last mileage ${miles(vc.current)}` : ""}` : "";
+  }
+  function prefillTypeFields(force) {
+    const v = vanById($("eVan").value), date = $("eDate").value;
+    if (!v || !isDate(date)) return;
+    const t = $("eType").value;
+    if (t === "mot" && (force || !$("eMotNext").value)) $("eMotNext").value = addDays(addYears(date, 1), -1);
+    if (t === "service" && (force || (!$("eSvcNext").value && !$("eSvcNextMiles").value))) {
+      $("eSvcNext").value = has(v.svcMonths) && num(v.svcMonths) > 0 ? addMonths(date, num(v.svcMonths)) : "";
+      const base = has($("eMiles").value) ? num($("eMiles").value) : null;
+      $("eSvcNextMiles").value = has(v.svcMilesInt) && num(v.svcMilesInt) > 0 && base !== null ? Math.round(base + num(v.svcMilesInt)) : "";
+    }
+    if (t === "tyres" && (force || !$("eTyreNotes").value)) $("eTyreNotes").value = v.tyreNotes || "";
+  }
+  function updateEventPreview() {
+    syncEventForm();
+    const d = eventFormDoc(), v = vanById(d.vanId), box = $("ePreview");
+    if (!v) { box.innerHTML = `<p class="note">Pick a van to see what saving this event changes.</p>`; return; }
+    const vc = fleet().map.get(v.id);
+    const { lines } = vanUpdates(d, v);
+    const L = (k, val, cls) => `<div class="line"><span>${k}</span><b class="${cls || ""}">${val}</b></div>`;
+    const cost = num(d.cost), biz = d.paidBy === "business" ? cost : 0;
+    const flags = [];
+    if (has(d.mileage) && vc.last && d.date >= vc.last.date && d.mileage < vc.last.miles) flags.push(`<div class="flag">Mileage is lower than the last reading (${miles(vc.last.miles)} on ${medD(vc.last.date)}).</div>`);
+    if (v.leaseMaint && biz > 0) flags.push(`<div class="flag warn">This van's lease includes maintenance. Should the lease company be paying?</div>`);
+    if (biz > 0 && !vc.fdCode) flags.push(`<div class="flag warn">No FD is set on this van, so this cost won't land on an FD in the P&amp;L download.</div>`);
+    if (d.fixes.length) lines.push(`${plural(d.fixes.length, "issue")} marked fixed`);
+    if (d.claimKey || d.claimRef) lines.push("Linked to a damage claim");
+    box.innerHTML = `<div class="preview">
+        ${L("Van", plate(vc))}
+        ${L("Cost to the business", money(biz), biz ? "neg" : "")}
+        ${cost - biz > 0.004 ? L(`Paid by ${PAIDBY[d.paidBy].toLowerCase()}`, money(cost - biz)) : ""}
+        ${L("Days off road", intF.format(num(d.daysOff)))}
+        ${L("Goes on the P&amp;L for", isDate(d.date) && biz ? `${esc(vc.fdCode || "no FD")} · ${esc(periodLabel(periodInfo(d.date)))}` : "–")}
+      </div>
+      ${lines.length ? `<div><span class="eyebrow">Also updates the van</span><ul class="note" style="margin:4px 0 0;padding-left:18px">${lines.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      ${flags.length ? `<div class="flags">${flags.join("")}</div>` : ""}`;
+  }
+  function resetEventForm(keepVan) {
+    discardFresh("event");
+    const vanId = keepVan ? $("eVan").value : "";
+    ui.eEditing = null;
+    $("evForm").reset();
+    delete $("eSvcNextMiles").dataset.touched; $("eIssues").innerHTML = "";
+    $("eDate").value = todayS(); $("ePaid").checked = true;
+    $("eFormTitle").textContent = "Log an event"; $("eSave").textContent = "Save event"; $("eCancel").hidden = true;
+    fillEventPickers(); $("eVan").value = vanId;
+    fillEventLinks(); renderAtt("event"); updateEventPreview();
+  }
+  function startEventFor(vanId, issueId) {
+    resetEventForm(false);
+    showTab("log");
+    $("eVan").value = vanId;
+    if (issueId) {
+      const i = byId(S.issues, issueId);
+      if (i) { ui.prefixIssue = i.id; $("eType").value = i.category === "tyres" ? "tyres" : "repair"; $("eDesc").value = i.description; if (i.claimRef) $("eClaimRef").value = i.claimRef; }
+    }
+    fillEventLinks(); prefillTypeFields(false); updateEventPreview();
+    $("eDesc").focus();
+  }
+  function startEventEdit(id) {
+    const e = byId(S.events, id); if (!e) return;
+    discardFresh("event");
+    showTab("log");
+    ui.eEditing = id;
+    $("evForm").reset();
+    fillEventPickers();
+    $("eVan").value = e.vanId; $("eDate").value = e.date || ""; $("eType").value = e.type || "repair"; $("eDesc").value = e.description || "";
+    $("eGarage").value = e.garage || ""; $("eMiles").value = has(e.mileage) ? e.mileage : ""; $("eCost").value = has(e.cost) ? e.cost : "";
+    $("ePaidBy").value = e.paidBy || "business"; $("eInvoice").value = e.invoiceNo || ""; $("ePaid").checked = e.paid !== false;
+    $("eDays").value = has(e.daysOff) ? e.daysOff : ""; $("eStatus").value = "";
+    $("eMotResult").value = e.motResult || "pass"; $("eMotNext").value = e.motNext || "";
+    $("eSvcNext").value = e.svcNext || ""; $("eSvcNextMiles").value = has(e.svcNextMiles) ? e.svcNextMiles : "";
+    document.querySelectorAll("#tyreBox [data-tyre]").forEach((x) => { x.checked = (e.tyres || []).includes(x.dataset.tyre); });
+    $("eTyreNotes").value = e.tyreNotes || "";
+    $("eClaimRef").value = e.claimRef || "";
+    $("eSvcNextMiles").dataset.touched = "1";
+    $("eIssues").innerHTML = ""; ui.eLinkInit = true;
+    fillEventLinks(); $("eClaim").value = e.claimKey || "";
+    ui.att.event = (e.attachments || []).map((a) => ({ ...a })); ui.attRemoved.event = [];
+    renderAtt("event");
+    $("eFormTitle").textContent = "Edit event"; $("eSave").textContent = "Save changes"; $("eCancel").hidden = false;
+    setMsg($("eMsg"), "");
+    updateEventPreview();
+  }
+  async function saveEvent(ev) {
+    ev.preventDefault();
+    const msg = $("eMsg");
+    if (!S.canWrite || !S.db) { setMsg(msg, "You can't change this log.", "err"); return; }
+    const d = eventFormDoc(), v = vanById(d.vanId);
+    const missing = [];
+    if (!v) missing.push("van");
+    if (!isDate(d.date)) missing.push("date");
+    if (!d.description) missing.push("description");
+    if (missing.length) { setMsg(msg, "Add the " + missing.join(", ") + ".", "err"); return; }
+    if (d.cost !== null && d.cost < 0) { setMsg(msg, "The cost can't be negative.", "err"); return; }
+    if (d.daysOff !== null && d.daysOff < 0) { setMsg(msg, "Days off road can't be negative.", "err"); return; }
+    const vc = fleet().map.get(v.id);
+    const lastOther = vc.rs.filter((r) => !(r.src === "event" && r.id === ui.eEditing) && r.date <= d.date).pop();
+    if (has(d.mileage) && lastOther && d.mileage < lastOther.miles) { setMsg(msg, `That mileage is lower than the reading on ${medD(lastOther.date)} (${miles(lastOther.miles)}).`, "err"); return; }
+    const { u } = vanUpdates(d, v);
+    const fixes = d.fixes; delete d.fixes;
+    const old = ui.eEditing ? byId(S.events, ui.eEditing) : null;
+    const doc = { ...(old ? strip(old) : {}), ...d, attachments: cleanAtt(ui.att.event), savedAt: new Date().toISOString() };
+    delete doc.statusAfter;
+    $("eSave").disabled = true;
+    try {
+      const ref = old ? S.db.collection("events").doc(old.id) : S.db.collection("events").doc();
+      await ref.set(doc);
+      const id = old ? old.id : ref.id;
+      if (Object.keys(u).length) await S.db.collection("vans").doc(v.id).set({ ...strip(v), ...u });
+      for (const i of S.issues) {
+        const want = fixes.includes(i.id), was = i.eventId === id && i.status === "fixed";
+        if (want && !was) await S.db.collection("issues").doc(i.id).set({ ...strip(i), status: "fixed", fixedDate: d.date, eventId: id, fixNotes: i.fixNotes || `${ETYPES[d.type]}${d.garage ? " at " + d.garage : ""}` });
+        else if (!want && was) await S.db.collection("issues").doc(i.id).set({ ...strip(i), status: "open", fixedDate: "", eventId: "" });
+      }
+      await dropRemoved("event");
+      ui.att.event = [];
+      const wasEdit = !!old;
+      resetEventForm(false);
+      setMsg(msg, wasEdit ? "Changes saved." : `Event saved for ${regShow(v.reg)}.`, "ok");
+    } catch (err) { setMsg(msg, writeErr(err), "err"); }
+    finally { $("eSave").disabled = !S.canWrite; }
+  }
+  async function deleteEvent(btn, msgEl) {
+    if (!arm(btn)) return;
+    const e = byId(S.events, btn.dataset.edel); if (!e) return;
+    try {
+      await S.db.collection("events").doc(e.id).delete();
+      for (const i of S.issues.filter((x) => x.eventId === e.id)) await S.db.collection("issues").doc(i.id).set({ ...strip(i), eventId: "" });
+      for (const a of e.attachments || []) await dropAsset(a);
+      if (ui.eEditing === e.id) resetEventForm(false);
+      if (ui.aDetail === e.id) ui.aDetail = null;
+      setMsg(msgEl, "Deleted. Dates it changed on the van (MOT, service, tyres) stay as they are.", "ok");
+    } catch (_) { setMsg(msgEl, "Couldn't delete. Try again.", "err"); }
+  }
+  function renderLog() {
+    fillEventPickers(); fillEventLinks(); renderAtt("event"); updateEventPreview();
+    const vanId = $("eVan").value;
+    const F = fleet();
+    const list = F.events.filter((e) => !vanId || e.vanId === vanId).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.savedAt || "").localeCompare(String(a.savedAt || ""))).slice(0, 10);
+    $("eRecentTitle").textContent = vanId ? `Recent events · ${regShow((vanById(vanId) || {}).reg)}` : "Recent events";
+    $("eRecent").innerHTML = list.length
+      ? `<thead><tr><th class="l">Date</th><th class="l">Van</th><th class="l">Type</th><th class="l">Description</th><th>Cost</th><th></th></tr></thead><tbody>` +
+        list.map((e) => `<tr class="${ui.eEditing === e.id ? "sel" : ""}"><td class="l">${esc(shortD(e.date))}</td><td class="l">${plate(e.van || { reg: e.reg })}</td><td class="l">${typeChip(e.type)}</td><td class="wrapcell">${esc(e.description)}</td><td>${e.cost ? money(e.cost) : "–"}</td><td><button class="mini" type="button" data-eedit="${esc(e.id)}">Edit</button></td></tr>`).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">Nothing logged yet.</span></td></tr></tbody>`;
+  }
+
+  // ============================================================ ISSUES
+  function fillIssuePickers() {
+    const it = ui.iEditing && byId(S.issues, ui.iEditing);
+    const cur = $("iVan").value;
+    const vans = fleet().vans.filter((v) => !v.gone || (it && it.vanId === v.id));
+    $("iVan").innerHTML = `<option value="">${vans.length ? "Pick a van" : "Add vans first"}</option>` + vans.map((v) => `<option value="${esc(v.id)}">${esc(v.reg)} · ${esc(v.model || "")}${v.driverName ? " · " + esc(v.driverName) : ""}</option>`).join("");
+    $("iVan").value = cur;
+    const dv = $("iDriver").value;
+    $("iDriver").innerHTML = `<option value="">–</option>` + byName(S.drivers.filter((d) => d.active !== false || (it && it.driverId === d.id)), "name").map((d) => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join("");
+    $("iDriver").value = dv;
+    if (!$("iCat").options.length) $("iCat").innerHTML = Object.entries(ICATS).map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("");
+  }
+  const istVal = () => ($("iFixed").checked ? "fixed" : $("iBooked").checked ? "booked" : "open");
+  function syncIssueForm() {
+    $("iBookedWrap").hidden = istVal() !== "booked";
+    $("iFixedWrap").hidden = istVal() !== "fixed";
+    $("iDamageNote").hidden = $("iCat").value !== "damage";
+  }
+  function resetIssueForm() {
+    discardFresh("issue");
+    ui.iEditing = null;
+    $("isForm").reset();
+    fillIssuePickers();
+    $("iDate").value = todayS(); $("iCat").value = "other"; $("iSev").value = "soon"; $("iOpen").checked = true;
+    $("iFormTitle").textContent = "Report an issue"; $("iSave").textContent = "Save issue"; $("iCancel").hidden = true;
+    renderAtt("issue"); syncIssueForm();
+  }
+  function startIssueFor(vanId) { resetIssueForm(); showTab("issues"); $("iVan").value = vanId; const v = vanById(vanId); if (v && v.driverId) $("iDriver").value = v.driverId; $("iDesc").focus(); }
+  function startIssueEdit(id) {
+    const i = byId(S.issues, id); if (!i) return;
+    discardFresh("issue");
+    showTab("issues");
+    ui.iEditing = id;
+    fillIssuePickers();
+    $("iVan").value = i.vanId; $("iDate").value = i.date || ""; $("iDriver").value = i.driverId || ""; $("iCat").value = i.category || "other"; $("iSev").value = i.severity || "soon";
+    $("iDesc").value = i.description || ""; $("iClaimRef").value = i.claimRef || "";
+    $("iOpen").checked = !i.status || i.status === "open"; $("iBooked").checked = i.status === "booked"; $("iFixed").checked = i.status === "fixed";
+    $("iBookedFor").value = i.bookedFor || ""; $("iFixedOn").value = i.fixedDate || ""; $("iFixNotes").value = i.fixNotes || "";
+    ui.att.issue = (i.attachments || []).map((a) => ({ ...a })); ui.attRemoved.issue = [];
+    $("iFormTitle").textContent = "Edit issue"; $("iSave").textContent = "Save changes"; $("iCancel").hidden = false;
+    setMsg($("iMsg"), ""); renderAtt("issue"); syncIssueForm(); render();
+    window.scrollTo(0, 0);
+  }
+  async function saveIssue(e) {
+    e.preventDefault();
+    const msg = $("iMsg");
+    if (!S.canWrite || !S.db) { setMsg(msg, "You can't change this log.", "err"); return; }
+    const old = ui.iEditing ? byId(S.issues, ui.iEditing) : null;
+    const st = istVal();
+    const d = {
+      ...(old ? strip(old) : {}), vanId: $("iVan").value, date: $("iDate").value, driverId: $("iDriver").value || "", category: $("iCat").value, severity: $("iSev").value,
+      description: $("iDesc").value.trim(), claimRef: $("iClaimRef").value.trim(), status: st,
+      bookedFor: st === "booked" ? $("iBookedFor").value : (old && old.bookedFor) || "", fixedDate: st === "fixed" ? ($("iFixedOn").value || todayS()) : "",
+      fixNotes: $("iFixNotes").value.trim(), attachments: cleanAtt(ui.att.issue), savedAt: new Date().toISOString(),
+    };
+    if (st !== "fixed" && old && old.eventId) d.eventId = "";
+    const missing = [];
+    if (!d.vanId) missing.push("van");
+    if (!isDate(d.date)) missing.push("date reported");
+    if (!d.description) missing.push("what's wrong");
+    if (missing.length) { setMsg(msg, "Add the " + missing.join(", ") + ".", "err"); return; }
+    $("iSave").disabled = true;
+    try {
+      if (old) await S.db.collection("issues").doc(old.id).set(d); else await S.db.collection("issues").add(d);
+      const v = vanById(d.vanId);
+      if (!old && d.severity === "unsafe" && v && (v.status || "road") === "road") await S.db.collection("vans").doc(v.id).set({ ...strip(v), status: "off", statusSince: d.date, statusNote: d.description });
+      await dropRemoved("issue");
+      ui.att.issue = [];
+      const wasEdit = !!old;
+      resetIssueForm();
+      setMsg(msg, wasEdit ? "Changes saved." : d.severity === "unsafe" ? "Issue saved. The van is marked off road." : "Issue saved.", "ok");
+    } catch (err) { setMsg(msg, writeErr(err), "err"); }
+    finally { $("iSave").disabled = !S.canWrite; }
+  }
+  async function quickIssue(id, status, msgEl) {
+    const i = byId(S.issues, id); if (!i) return;
+    const d = { ...strip(i), status };
+    if (status === "booked") d.bookedFor = i.bookedFor || "";
+    if (status === "fixed") d.fixedDate = todayS();
+    try { await S.db.collection("issues").doc(i.id).set(d); setMsg(msgEl, status === "fixed" ? "Marked fixed." : "Marked booked in. Edit the issue to add the date.", "ok"); }
+    catch (err) { setMsg(msgEl, writeErr(err), "err"); }
+  }
+  async function deleteIssue(btn, msgEl) {
+    if (!arm(btn)) return;
+    const i = byId(S.issues, btn.dataset.idel); if (!i) return;
+    try { await S.db.collection("issues").doc(i.id).delete(); for (const a of i.attachments || []) await dropAsset(a); if (ui.iEditing === i.id) resetIssueForm(); setMsg(msgEl, "Deleted.", "ok"); }
+    catch (_) { setMsg(msgEl, "Couldn't delete. Try again.", "err"); }
+  }
+  function renderIssues() {
+    fillIssuePickers(); renderAtt("issue"); syncIssueForm();
+    ui.iScope = scopeOptions($("iScope"), ui.iScope);
+    document.querySelectorAll("#iStatusSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.is === ui.iStatus)));
+    const F = fleet();
+    const list = S.issues.filter((i) => vanInScope(F.map.get(i.vanId), ui.iScope) && (ui.iStatus === "all" || (ui.iStatus === "fixed" ? i.status === "fixed" : i.status !== "fixed"))).sort(issueSort);
+    if (ui.iStatus === "fixed") list.reverse();
+    $("iTitle").textContent = `${plural(list.length, "issue")}`;
+    const nl = list.filter((i) => i.status === "open" && isDate(i.date) && daysBetween(i.date, todayS()) >= S.settings.issueDays).length;
+    $("iMeta").textContent = nl ? `${nl} not looked at for ${S.settings.issueDays}+ days` : "Unsafe ones first.";
+    $("iTable").innerHTML = issueRows(list, true);
+  }
+
+  // ============================================================ MILEAGE
+  function renderMileage() {
+    ui.mScope = scopeOptions($("mScope"), ui.mScope, false);
+    if (!$("mDate").value) $("mDate").value = ui.mDate;
+    const F = fleet();
+    const vans = F.vans.filter((v) => !v.gone && vanInScope(v, ui.mScope));
+    const keep = new Map([...document.querySelectorAll("#mTable [data-miles]")].map((x) => [x.dataset.miles, x.value]));
+    $("mMeta").textContent = `Type the odometer reading for each van you've checked, then save. Vans not updated for ${S.settings.readingDays} days are flagged.`;
+    $("mTable").innerHTML = vans.length
+      ? `<thead><tr><th class="l">Van</th><th class="l">Driver</th><th class="l">Last reading</th><th>Mileage</th><th>Per week</th><th class="l">Lease mileage</th><th class="l">New reading</th></tr></thead><tbody>` +
+        vans.map((v) => { const ago = v.last ? daysBetween(v.last.date, todayS()) : null; return `<tr><td class="l">${plate(v)}</td><td class="l">${esc(v.driverName || "–")}</td><td class="l">${v.last ? `${esc(medD(v.last.date))}${ago > S.settings.readingDays ? ` <span class="chip warn">${ago} days ago</span>` : ""}` : `<span class="chip warn">None yet</span>`}</td><td>${miles(v.current)}</td><td>${v.rate ? miles(v.rate * 7) : "–"}</td><td class="l">${leaseChip(v)}</td><td class="l"><input type="number" min="0" step="1" inputmode="numeric" data-miles="${esc(v.id)}" id="mi-${esc(v.id)}" aria-label="New mileage for ${esc(v.reg)}" style="width:130px" value="${esc(keep.get(v.id) || "")}" placeholder="${v.current !== null ? esc(Math.round(v.current)) : ""}"></td></tr>`; }).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">No vans yet.</span></td></tr></tbody>`;
+    const recent = S.mileage.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.savedAt || "").localeCompare(String(a.savedAt || ""))).filter((m) => vanInScope(F.map.get(m.vanId), ui.mScope)).slice(0, 30);
+    $("mRecent").innerHTML = recent.length
+      ? `<thead><tr><th class="l">Date</th><th class="l">Van</th><th>Mileage</th><th></th></tr></thead><tbody>` + recent.map((m) => `<tr><td class="l">${esc(medD(m.date))}</td><td class="l">${plate(F.map.get(m.vanId) || { reg: "Deleted van" })}</td><td>${miles(num(m.miles))}</td><td><button class="mini" type="button" data-mdel="${esc(m.id)}">Delete</button></td></tr>`).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">No readings yet.</span></td></tr></tbody>`;
+    $("mSave").disabled = !S.canWrite;
+  }
+  async function saveMileage() {
+    const msg = $("mMsg");
+    if (!S.canWrite || !S.db) { setMsg(msg, "You can't change this log.", "err"); return; }
+    const date = $("mDate").value;
+    if (!isDate(date)) { setMsg(msg, "Pick the reading date.", "err"); return; }
+    const F = fleet();
+    const rows = [...document.querySelectorAll("#mTable [data-miles]")].filter((x) => x.value !== "").map((x) => ({ v: F.map.get(x.dataset.miles), miles: num(x.value), el: x }));
+    if (!rows.length) { setMsg(msg, "Type at least one reading.", "err"); return; }
+    for (const r of rows) {
+      const before = r.v.rs.filter((x) => x.date <= date).pop();
+      if (r.miles < 0 || (before && r.miles < before.miles)) { setMsg(msg, `${r.v.reg}: ${miles(r.miles)} is lower than the reading on ${medD(before.date)} (${miles(before.miles)}).`, "err"); r.el.focus(); return; }
+    }
+    $("mSave").disabled = true;
+    try {
+      for (const r of rows) await S.db.collection("mileage").add({ vanId: r.v.id, date, miles: r.miles, savedAt: new Date().toISOString() });
+      rows.forEach((r) => { r.el.value = ""; });
+      setMsg(msg, `Saved ${plural(rows.length, "reading")}.`, "ok");
+    } catch (err) { setMsg(msg, writeErr(err), "err"); }
+    finally { $("mSave").disabled = !S.canWrite; }
+  }
+
+  // ============================================================ COSTS & P&L
+  function periodData(date, scope) {
+    const p = periodInfo(date);
+    const evs = fleet().events.filter((e) => evInScope(e, scope) && inRange(e.date, p));
+    return { p, evs };
+  }
+  function renderCosts() {
+    ui.cScope = scopeOptions($("cScope"), ui.cScope);
+    const { p, evs } = periodData(ui.cDate, ui.cScope);
+    const isNow = periodInfo(todayS()).start === p.start;
+    $("cTitle").textContent = periodLabel(p) + (isNow ? " (this period)" : "");
+    $("cToday").hidden = isNow;
+    const t = costAgg(evs);
+    const F = fleet();
+    const vans = F.vans.filter((v) => vanInScope(v, ui.cScope) && (!v.gone || evs.some((e) => e.vanId === v.id)));
+    const hire = vans.filter((v) => !v.gone).reduce((a, v) => a + (v.ownership === "leased" ? num(v.leaseMonthly) * 12 / 13 : 0), 0);
+    const ins = vans.filter((v) => !v.gone).reduce((a, v) => a + num(v.insPremium) / 13, 0);
+    const byType = Object.keys(ETYPES).map((k) => [k, costAgg(evs.filter((e) => e.type === k))]).filter(([, x]) => x.n);
+    $("cTiles").innerHTML = `
+      <div class="tile main"><span class="eyebrow">Maintenance for the P&amp;L</span><b>${money(t.biz)}</b><small>${plural(t.n, "event")}</small></div>
+      <div class="tile"><span class="eyebrow">Days off road</span><b>${intF.format(t.days)}</b><small>across ${plural(new Set(evs.filter((e) => e.days).map((e) => e.vanId)).size, "van")}</small></div>
+      <div class="tile plus"><span class="eyebrow">Paid by others</span><b>${money(t.cost - t.biz)}</b><small>lease, warranty, insurance</small></div>
+      <div class="tile ${t.unpaidN ? "warn" : ""}"><span class="eyebrow">Unpaid invoices</span><b>${money(t.unpaid)}</b><small>${plural(t.unpaidN, "invoice")}</small></div>
+      <div class="tile"><span class="eyebrow">Lease cost · 4 weeks</span><b>${money(hire)}</b><small>van hire on the P&amp;L</small></div>
+      <div class="tile"><span class="eyebrow">Insurance · 4 weeks</span><b>${money(ins)}</b><small>from annual premiums</small></div>
+      ${byType.slice(0, 2).map(([k, x]) => `<div class="tile"><span class="eyebrow">${esc(ETYPES[k])}</span><b>${money(x.biz)}</b><small>${plural(x.n, "event")}</small></div>`).join("")}`;
+    const vrows = vans.map((v) => ({ v, t: costAgg(evs.filter((e) => e.vanId === v.id)) })).sort((a, b) => b.t.biz - a.t.biz || a.v.key.localeCompare(b.v.key));
+    $("cVans").innerHTML = vrows.length
+      ? `<thead><tr><th class="l">Van</th><th class="l">Depot</th><th class="l">FD</th><th>Events</th>${Object.values(ETYPES).map((x) => `<th>${esc(x)}</th>`).join("")}<th>Maintenance</th><th>Days off road</th><th>Lease / 4 wks</th><th>Insurance / 4 wks</th></tr></thead><tbody>` +
+        vrows.map(({ v, t }) => `<tr class="click" data-van="${esc(v.id)}"><td class="l">${plate(v)}</td><td class="l">${esc(v.depot || "–")}</td><td class="l">${esc(v.fdCode || "–")}</td><td>${t.n || "–"}</td>${Object.keys(ETYPES).map((k) => `<td>${mOrDash(evs.filter((e) => e.vanId === v.id && e.type === k).reduce((a, e) => a + e.biz, 0))}</td>`).join("")}<td>${mOrDash(t.biz)}</td><td>${t.days || "–"}</td><td>${v.ownership === "leased" && !v.gone ? mOrDash(num(v.leaseMonthly) * 12 / 13) : "–"}</td><td>${!v.gone ? mOrDash(num(v.insPremium) / 13) : "–"}</td></tr>`).join("") +
+        `</tbody><tfoot><tr><td>Total</td><td></td><td></td><td>${t.n}</td>${Object.keys(ETYPES).map((k) => `<td>${mOrDash(evs.filter((e) => e.type === k).reduce((a, e) => a + e.biz, 0))}</td>`).join("")}<td>${money(t.biz)}</td><td>${t.days}</td><td>${money(hire)}</td><td>${money(ins)}</td></tr></tfoot>`
+      : `<tbody><tr><td class="l"><span class="small">No vans for this selection.</span></td></tr></tbody>`;
+    const fdRows = fdTotals(evs, vans);
+    $("cFds").innerHTML = fdRows.length
+      ? `<thead><tr><th class="l">FD / email</th><th class="l">Depot</th><th class="l">Vans</th><th>Events</th><th>Maintenance</th><th>Days off road</th><th>Van hire / 4 wks</th><th>Insurance / 4 wks</th></tr></thead><tbody>` +
+        fdRows.map((r) => `<tr><td class="l">${fdCell(r)}</td><td class="l">${esc(r.depot || "–")}</td><td class="l">${r.regs.map((x) => `<span class="plate">${esc(x)}</span>`).join(" ") || "–"}</td><td>${r.n || "–"}</td><td>${mOrDash(r.biz)}</td><td>${r.days || "–"}</td><td>${mOrDash(r.hire)}</td><td>${mOrDash(r.ins)}</td></tr>`).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">Nothing this pay period.</span></td></tr></tbody>`;
+    $("cEvents").innerHTML = eventsTable(evs.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))), false);
+    const trend = [];
+    for (let i = 12; i >= 0; i--) { const d = periodData(addDays(p.start, -28 * i), ui.cScope); trend.push({ p: d.p, t: costAgg(d.evs) }); }
+    $("cTrend").innerHTML = `<thead><tr><th class="l">Pay period</th><th>Events</th><th>Maintenance</th><th>Paid by others</th><th>Days off road</th></tr></thead><tbody>` +
+      trend.map((r) => `<tr class="click${r.p.start === p.start ? " sel" : ""}" data-period="${r.p.start}"><td class="l">${esc(periodLabel(r.p))}</td><td>${r.t.n || "–"}</td><td>${mOrDash(r.t.biz)}</td><td>${mOrDash(r.t.cost - r.t.biz)}</td><td>${r.t.days || "–"}</td></tr>`).join("") +
+      `</tbody><tfoot><tr><td>Total</td><td>${trend.reduce((a, r) => a + r.t.n, 0)}</td><td>${money(trend.reduce((a, r) => a + r.t.biz, 0))}</td><td>${money(trend.reduce((a, r) => a + r.t.cost - r.t.biz, 0))}</td><td>${trend.reduce((a, r) => a + r.t.days, 0)}</td></tr></tfoot>`;
+  }
+  function fdTotals(evs, vans) {
+    const m = new Map();
+    const get = (fdId, depot) => {
+      const k = fdId || "?";
+      if (!m.has(k)) { const f = fdById(fdId); m.set(k, { fdId, fdCode: f ? f.code : "", fdEmail: f ? f.email : "", depot: f ? f.depot : depot, regs: [], n: 0, biz: 0, days: 0, hire: 0, ins: 0 }); }
+      return m.get(k);
+    };
+    for (const v of vans) if (!v.gone) { const r = get(v.fdId, v.depot); r.regs.push(v.reg); if (v.ownership === "leased") r.hire += num(v.leaseMonthly) * 12 / 13; r.ins += num(v.insPremium) / 13; }
+    for (const e of evs) { const r = get(e.fdId, e.depot); r.n++; r.biz += e.biz; r.days += e.days; }
+    return [...m.values()].filter((r) => r.n || r.hire || r.ins || r.regs.length).sort((a, b) => (a.fdId ? 0 : 1) - (b.fdId ? 0 : 1) || String(a.depot).localeCompare(String(b.depot)) || String(a.fdCode).localeCompare(String(b.fdCode), undefined, { numeric: true }));
+  }
+
+  // ---------- exports ----------
+  async function saveCsv(rows, filename, msgEl) {
+    const cell = (v) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const data = "﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n");
+    if (S.dl) {
+      try { await S.dl.save({ filename, data }); setMsg(msgEl, "File ready.", "ok"); }
+      catch (err) { if (!err || err.code !== "declined") setMsg(msgEl, "Couldn't create the file. Try again.", "err"); }
+      return;
+    }
+    try {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([data], { type: "text/csv;charset=utf-8" }));
+      a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      setMsg(msgEl, "File ready.", "ok");
+    } catch (_) { setMsg(msgEl, "Downloads aren't available here.", "err"); }
+  }
+  function exportPnl() {
+    const { p, evs } = periodData(ui.cDate, ui.cScope);
+    const m = new Map();
+    for (const e of evs) {
+      if (e.biz <= 0.004) continue;
+      const k = e.date + "|" + (e.fdId || "?");
+      if (!m.has(k)) m.set(k, { date: e.date, fdCode: e.fdCode, fdEmail: e.fdEmail, depot: e.depot, amt: 0, days: 0, notes: [] });
+      const r = m.get(k); r.amt += e.biz; r.days += e.days; r.notes.push(`${e.reg} ${ETYPES[e.type]}: ${e.description}${e.garage ? " (" + e.garage + ")" : ""}`);
+    }
+    const rows = [["Date", "FD", "FD email", "Depot", "Van maintenance (cost to business)", "Days off road", "Note"]];
+    [...m.values()].sort((a, b) => a.date.localeCompare(b.date) || String(a.fdCode).localeCompare(String(b.fdCode))).forEach((r) => rows.push([r.date, r.fdCode || "No FD set", r.fdEmail, r.depot, r.amt.toFixed(2), r.days, r.notes.join("; ")]));
+    if (rows.length === 1) { setMsg($("cMsg"), "No maintenance costs paid by the business this pay period.", ""); return; }
+    saveCsv(rows, `van-log-pnl-${p.start}.csv`, $("cMsg"));
+  }
+  function exportHire() {
+    const { p, evs } = periodData(ui.cDate, ui.cScope);
+    const vans = fleet().vans.filter((v) => vanInScope(v, ui.cScope));
+    const rows = [["Pay period start", "FD", "FD email", "Depot", "Van hire (lease) per 4 weeks", "Insurance per 4 weeks", "Vans"]];
+    for (const r of fdTotals(evs, vans)) if (r.hire || r.ins) rows.push([p.start, r.fdCode || "No FD set", r.fdEmail, r.depot, r.hire.toFixed(2), r.ins.toFixed(2), r.regs.join(" ")]);
+    if (rows.length === 1) { setMsg($("cMsg"), "No lease costs or insurance premiums entered on the vans yet.", ""); return; }
+    saveCsv(rows, `van-log-hire-insurance-${p.start}.csv`, $("cMsg"));
+  }
+  async function copySummary() {
+    const { p, evs } = periodData(ui.cDate, ui.cScope);
+    const t = costAgg(evs);
+    const out = [`Van costs, pay period ${periodLabel(p)} (${scopeName(ui.cScope)})`, `Maintenance: ${money(t.biz)} over ${plural(t.n, "event")}, ${t.days} days off road`];
+    const byVan = new Map();
+    for (const e of evs) { if (!byVan.has(e.reg)) byVan.set(e.reg, []); byVan.get(e.reg).push(e); }
+    for (const [reg, list] of byVan) { const x = costAgg(list); out.push(`${reg}: ${money(x.biz)}, ${x.days} days off road (${list.map((e) => ETYPES[e.type]).join(", ")})`); }
+    const F = fleet();
+    const alerts = F.vans.filter((v) => vanInScope(v, ui.cScope)).flatMap((v) => v.alerts.filter((a) => a.level !== "info").map((a) => `${v.reg}: ${a.text}`));
+    if (alerts.length) out.push("", "Due / overdue:", ...alerts);
+    const text = out.join("\n");
+    try { await navigator.clipboard.writeText(text); setMsg($("cMsg"), "Summary copied.", "ok"); }
+    catch (_) { setMsg($("cMsg"), text, ""); }
+  }
+  const EV_HEAD = ["Date", "Van reg", "Make / model", "Depot", "FD", "FD email", "Driver", "Type", "Description", "Garage", "Mileage", "Cost", "Paid by", "Cost to business", "Invoice no.", "Invoice paid", "Days off road", "MOT result", "Next MOT due", "Next service date", "Next service mileage", "Tyres changed", "Claim ref", "Files"];
+  const evRow = (e) => [e.date, e.reg, e.van ? e.van.model : "", e.depot, e.fdCode, e.fdEmail, e.driverName, ETYPES[e.type], e.description, e.garage || "", has(e.mileage) ? e.mileage : "", e.cost.toFixed(2), PAIDBY[e.paidBy || "business"], e.biz.toFixed(2), e.invoiceNo || "", e.cost ? (e.paid === false ? "N" : "Y") : "", e.days || "", e.type === "mot" ? MOTRES[e.motResult] || "" : "", e.motNext || "", e.svcNext || "", has(e.svcNextMiles) ? e.svcNextMiles : "", (e.tyres || []).join(" / "), e.claim ? e.claim.dpdRef || "" : "", (e.attachments || []).length || ""];
+  function exportEvents() {
+    const F = fleet();
+    const rows = [...$("aTable").querySelectorAll("tr[data-eopen]")].map((tr) => F.events.find((x) => x.id === tr.dataset.eopen)).filter(Boolean);
+    saveCsv([EV_HEAD, ...rows.map(evRow)], `van-log-events-${todayS()}.csv`, $("aMsg"));
+  }
+  function exportFleet() {
+    const F = fleet();
+    const r = rangeOf(ui.dRange, ui.dDate);
+    const head = ["Reg", "Make / model", "Fuel", "First registered", "Depot", "FD", "FD email", "Driver", "Status", "Status since", "Owned / leased", "Lease company", "Monthly cost", "Lease start", "Lease end", "Annual allowance", "Mileage", "Last reading", "Lease miles used", "Projected at lease end", "Over / under allowance", "MOT due", "Last service", "Next service date", "Next service mileage", "Insurance provider", "Policy no.", "Insurance renewal", "Annual premium", "Road tax due", "Tyres last changed", "Tyre notes", "Battery health %", "Range (miles)", "Battery notes", "Open issues", "Maintenance (range)", "Days off road (range)", "Alerts"];
+    const rows = [head];
+    for (const v of F.vans.filter((x) => vanInScope(x, ui.dScope))) {
+      const t = costAgg(F.events.filter((e) => e.vanId === v.id && inRange(e.date, r)));
+      const l = v.lease && !v.lease.incomplete && !v.lease.noData ? v.lease : null;
+      rows.push([v.reg, v.model, FUEL[v.fuel] || "", v.firstReg || "", v.depot, v.fdCode, v.fdEmail, v.driverName, STATUS[v.status || "road"], v.statusSince || "", v.ownership === "leased" ? "Leased" : "Owned", v.leaseCo || "", has(v.leaseMonthly) ? num(v.leaseMonthly).toFixed(2) : "", v.leaseStart || "", v.leaseEnd || "", v.annualMiles ?? "", v.current ?? "", v.last ? v.last.date : "", l ? Math.round(l.used) : "", l && l.projected !== null ? Math.round(l.projected) : "", l && l.over !== null ? Math.round(l.over) : "", v.motDue || "", v.lastServiceDate || "", v.nextServiceDate || "", v.nextServiceMiles ?? "", v.insurer || "", v.policyNo || "", v.insRenewal || "", has(v.insPremium) ? num(v.insPremium).toFixed(2) : "", v.taxDue || "", v.tyreLast || "", v.tyreNotes || "", v.soh ?? "", v.rangeMiles ?? "", v.battNotes || "", v.issues.length, t.biz.toFixed(2), t.days, v.alerts.filter((a) => a.level !== "info").map((a) => a.text).join("; ")]);
+    }
+    saveCsv(rows, `van-log-fleet-${todayS()}.csv`, $("dMsg"));
+  }
+
+  // ============================================================ ALL EVENTS
+  function renderEvents() {
+    ui.aScope = scopeOptions($("aScope"), ui.aScope);
+    if ($("aType").options.length < 2) $("aType").innerHTML = `<option value="">All types</option>` + Object.entries(ETYPES).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+    $("aType").value = ui.aType;
+    const q = ui.aSearch.trim().toLowerCase(), qk = regKey(q).toLowerCase();
+    const F = fleet();
+    const list = F.events.filter((e) => evInScope(e, ui.aScope) && (!ui.aType || e.type === ui.aType) && (!q || (qk && e.key.toLowerCase().includes(qk)) ||
+      [e.description, e.garage, e.invoiceNo, e.driverName, e.fdCode, e.claimRef, e.claim && e.claim.dpdRef, e.tyreNotes].some((x) => String(x || "").toLowerCase().includes(q))))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const t = costAgg(list);
+    $("aTitle").textContent = `${plural(list.length, "event")} · ${money(t.biz)} to the business · ${t.days} days off road`;
+    $("aTable").innerHTML = eventsTable(list, true);
+    const e = ui.aDetail && F.events.find((x) => x.id === ui.aDetail);
+    $("evDetail").hidden = !e;
+    if (e) {
+      const d = (k, val) => `<div><span>${esc(k)}</span><b>${val}</b></div>`;
+      const fixed = S.issues.filter((i) => i.eventId === e.id);
+      $("evDetail").innerHTML = `<div class="rangeline"><h2 style="font-size:22px">${typeChip(e.type)} ${plate(e.van || { reg: e.reg })} <small>· ${esc(medD(e.date))}</small></h2>
+        <div class="actions"><button class="mini" type="button" data-eedit="${esc(e.id)}">Edit</button>${e.van ? `<button class="mini" type="button" data-van="${esc(e.vanId)}">Open van</button>` : ""}<button class="mini" type="button" data-close-ev="1">Close</button></div></div>
+        <div class="dl" style="margin-top:12px">
+          ${d("Description", esc(e.description))}
+          ${d("Garage", esc(e.garage || "–"))}
+          ${d("Mileage", has(e.mileage) ? miles(num(e.mileage)) : "–")}
+          ${d("Cost", `${e.cost ? money(e.cost) : "–"}${e.cost ? ` · paid by ${esc(PAIDBY[e.paidBy || "business"].toLowerCase())}` : ""}`)}
+          ${d("Invoice", `${esc(e.invoiceNo || "–")}${e.cost ? (e.paid === false ? ` <span class="chip warn">Unpaid</span>` : ` <span class="chip ok">Paid</span>`) : ""}`)}
+          ${d("Days off road", e.days || "–")}
+          ${d("Driver on the day", esc(e.driverName || "–"))}
+          ${d("FD / depot", `${esc(e.fdCode || "No FD")} · ${esc(e.depot || "–")}`)}
+          ${e.type === "mot" ? d("MOT", `${esc(MOTRES[e.motResult] || "–")}${e.motNext ? ` · next due ${esc(medD(e.motNext))}` : ""}`) : ""}
+          ${e.type === "service" ? d("Next service", [e.svcNext ? medD(e.svcNext) : "", has(e.svcNextMiles) ? miles(num(e.svcNextMiles)) + " miles" : ""].filter(Boolean).map(esc).join(" or ") || "–") : ""}
+          ${e.type === "tyres" ? d("Tyres changed", esc((e.tyres || []).join(", ") || "–")) : ""}
+          ${d("Damage claim", e.claim ? `${esc(e.claim.dpdRef || "")}${e.claim.unmatched ? " <span class='small'>(not imported)</span>" : ` · ${esc(e.claim.type || "")} ${esc(shortD(e.claim.incidentDate))} · absorbed ${money(num(e.claim.absorbed))}`}` : "–")}
+          ${d("Fixed issues", fixed.length ? fixed.map((i) => esc(i.description)).join("<br>") : "–")}
+        </div>
+        <div style="margin-top:14px"><span class="eyebrow">Invoices and photos</span><div style="margin-top:6px">${attList(e.attachments || [], null)}</div></div>`;
+    }
+  }
+
+  // ============================================================ SETTINGS
+  function depotOptions(sel, v) {
+    const deps = S.settings.depots || [];
+    sel.innerHTML = deps.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+    if (v && deps.includes(v)) sel.value = v;
+  }
+  function renderSettings() {
+    $("fdList").innerHTML = S.fds.length
+      ? `<thead><tr><th class="l">FD</th><th class="l">Email</th><th class="l">Depot</th><th class="l">Vans</th><th class="l">Status</th><th></th></tr></thead><tbody>` +
+        byName(S.fds, "code").map((f) => `<tr class="${f.active === false ? "dim" : ""}"><td class="l name">${esc(f.code)}</td><td class="l">${esc(f.email)}</td><td class="l">${esc(f.depot)}</td><td class="l">${S.vans.filter((v) => v.fdId === f.id && v.status !== "gone").map((v) => `<span class="plate">${esc(regShow(v.reg))}</span>`).join(" ") || "–"}</td><td class="l">${f.active === false ? "Inactive" : "Active"}</td><td><div class="rowbtns"><button class="mini" type="button" data-xedit="${esc(f.id)}">Edit</button><button class="mini" type="button" data-xdel="${esc(f.id)}">Delete</button></div></td></tr>`).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">No FDs yet. Add each FD with its email and depot.</span></td></tr></tbody>`;
+    $("drvList").innerHTML = S.drivers.length
+      ? `<thead><tr><th class="l">Driver</th><th class="l">Depot</th><th class="l">Van now</th><th class="l">Status</th><th></th></tr></thead><tbody>` +
+        byName(S.drivers, "name").map((d) => `<tr class="${d.active === false ? "dim" : ""}"><td class="l name">${esc(d.name)}</td><td class="l">${esc(d.depot)}</td><td class="l">${S.vans.filter((v) => v.driverId === d.id && v.status !== "gone").map((v) => `<span class="plate">${esc(regShow(v.reg))}</span>`).join(" ") || "–"}</td><td class="l">${d.active === false ? "Inactive" : "Active"}</td><td><div class="rowbtns"><button class="mini" type="button" data-dedit="${esc(d.id)}">Edit</button><button class="mini" type="button" data-ddel="${esc(d.id)}">Delete</button></div></td></tr>`).join("") + `</tbody>`
+      : `<tbody><tr><td class="l"><span class="small">No drivers yet.</span></td></tr></tbody>`;
+    if (!ui.editingFd) depotOptions($("xDepot"), $("xDepot").value);
+    if (!ui.editingDriver) depotOptions($("dDepot"), $("dDepot").value);
+    ruleSummary();
+    setMsg($("clMsg"), S.claims.length ? `${plural(S.claims.length, "claim")} imported, ${S.claims.filter((c) => S.vans.some((v) => regKey(v.reg) === regKey(c.vanReg))).length} matched to a van.` : "No claims imported yet.", "");
+  }
+  function ruleSummary() {
+    const s = S.settings, p = periodInfo(todayS());
+    $("ruleSummary").innerHTML = `<p>Pay periods run 4 weeks from ${esc(medD(s.periodStart))} (same as your other trackers). This one: <b>${esc(periodLabel(p))}</b>.</p>
+      <p>Alerts show <b>${s.alertDays} days</b> before an MOT, service, insurance renewal, road tax or lease end, and when a service is within <b>${miles(s.milesWarn)} miles</b>.</p>
+      <p>Issues still “Reported” after <b>${plural(s.issueDays, "day")}</b> are flagged as not looked at. Vans without a mileage reading for <b>${s.readingDays} days</b> get a reminder.</p>`;
+  }
+  function fillRulesForm() {
+    const s = S.settings;
+    $("rStart").value = s.periodStart; $("rDepots").value = (s.depots || []).join(", ");
+    $("rAlert").value = s.alertDays; $("rMilesWarn").value = s.milesWarn; $("rIssue").value = s.issueDays; $("rReading").value = s.readingDays;
+    ruleSummary();
+  }
+  async function saveRules(e) {
+    e.preventDefault();
+    const msg = $("rMsg");
+    const start = $("rStart").value;
+    const depots = [...new Set($("rDepots").value.split(",").map((s) => s.trim()).filter(Boolean))];
+    if (!isDate(start) || !depots.length) { setMsg(msg, "Add the start date and at least one depot.", "err"); return; }
+    const n = (id, min, def) => { const v = Math.round(num($(id).value)); return $(id).value === "" ? def : Math.max(v, min); };
+    const doc = { periodStart: start, depots, alertDays: n("rAlert", 1, 30), milesWarn: n("rMilesWarn", 0, 1000), issueDays: n("rIssue", 0, 3), readingDays: n("rReading", 1, 14) };
+    try { await S.db.doc("settings/main").set(doc); setMsg(msg, "Saved.", "ok"); }
+    catch (err) { setMsg(msg, writeErr(err), "err"); }
+  }
+  function resetFdForm() { ui.editingFd = null; $("fdForm").reset(); $("xActive").checked = true; $("xSubmit").textContent = "Add FD"; $("xCancel").hidden = true; renderSettings(); }
+  function editFd(id) {
+    const f = fdById(id); if (!f) return;
+    ui.editingFd = id; depotOptions($("xDepot"), f.depot);
+    $("xCode").value = f.code; $("xEmail").value = f.email; $("xDepot").value = f.depot; $("xActive").checked = f.active !== false;
+    $("xSubmit").textContent = "Save FD"; $("xCancel").hidden = false; $("xCode").focus();
+  }
+  async function submitFd(e) {
+    e.preventDefault();
+    const msg = $("xMsg");
+    const doc = { code: $("xCode").value.trim(), email: $("xEmail").value.trim(), depot: $("xDepot").value, active: $("xActive").checked };
+    if (!doc.code || !doc.email || !doc.depot) { setMsg(msg, "Add the FD number, email and depot.", "err"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(doc.email)) { setMsg(msg, "That email doesn't look right.", "err"); return; }
+    if (S.fds.some((f) => f.id !== ui.editingFd && f.code.toLowerCase() === doc.code.toLowerCase())) { setMsg(msg, "There's already an FD with that number.", "err"); return; }
+    try {
+      if (ui.editingFd) await S.db.collection("fds").doc(ui.editingFd).set(doc); else await S.db.collection("fds").add(doc);
+      setMsg(msg, `Saved ${doc.code}.`, "ok"); resetFdForm();
+    } catch (err) { setMsg(msg, writeErr(err), "err"); }
+  }
+  async function deleteFd(btn) {
+    const f = fdById(btn.dataset.xdel); if (!f) return;
+    if (S.vans.some((v) => v.fdId === f.id) || S.events.some((e) => e.fdId === f.id)) { setMsg($("xMsg"), `${f.code} has vans or events linked to it. Untick “Active” instead.`, "err"); return; }
+    if (!arm(btn)) return;
+    try { await S.db.collection("fds").doc(f.id).delete(); setMsg($("xMsg"), `Deleted ${f.code}.`, "ok"); } catch (_) { setMsg($("xMsg"), "Couldn't delete. Try again.", "err"); }
+  }
+  function resetDriverForm() { ui.editingDriver = null; $("drvForm").reset(); $("dActive").checked = true; $("dSubmit").textContent = "Add driver"; $("dCancel").hidden = true; renderSettings(); }
+  function editDriver(id) {
+    const d = driverById(id); if (!d) return;
+    ui.editingDriver = id; depotOptions($("dDepot"), d.depot);
+    $("dName").value = d.name; $("dDepot").value = d.depot; $("dActive").checked = d.active !== false;
+    $("dSubmit").textContent = "Save driver"; $("dCancel").hidden = false; $("dName").focus();
+  }
+  async function submitDriver(e) {
+    e.preventDefault();
+    const msg = $("dMsg");
+    const doc = { name: $("dName").value.trim().replace(/\s+/g, " "), depot: $("dDepot").value, active: $("dActive").checked };
+    if (!doc.name || !doc.depot) { setMsg(msg, "Add the driver's name and depot.", "err"); return; }
+    if (S.drivers.some((d) => d.id !== ui.editingDriver && d.name.toLowerCase() === doc.name.toLowerCase())) { setMsg(msg, "There's already a driver with that name.", "err"); return; }
+    try {
+      if (ui.editingDriver) await S.db.collection("drivers").doc(ui.editingDriver).set(doc); else await S.db.collection("drivers").add(doc);
+      setMsg(msg, `Saved ${doc.name}.`, "ok"); resetDriverForm();
+    } catch (err) { setMsg(msg, writeErr(err), "err"); }
+  }
+  async function deleteDriver(btn) {
+    const d = driverById(btn.dataset.ddel); if (!d) return;
+    if (S.assignments.some((a) => a.driverId === d.id) || S.issues.some((i) => i.driverId === d.id)) { setMsg($("dMsg"), `${d.name} is in a van's driver history. Untick “Active” instead.`, "err"); return; }
+    if (!arm(btn)) return;
+    try { await S.db.collection("drivers").doc(d.id).delete(); setMsg($("dMsg"), `Deleted ${d.name}.`, "ok"); } catch (_) { setMsg($("dMsg"), "Couldn't delete. Try again.", "err"); }
+  }
+
+  // ---------- importing claims from the Damages & Claims log ----------
+  function parseCsv(text) {
+    const rows = []; let row = [], cell = "", q = false;
+    text = text.replace(/^﻿/, "");
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+      else if (c === '"') q = true;
+      else if (c === ",") { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+      else cell += c;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter((r) => r.some((x) => x.trim() !== ""));
+  }
+  function hashKey(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return "c" + (h >>> 0).toString(36); }
+  async function importClaims(file) {
+    const msg = $("clMsg");
+    if (!S.canWrite || !S.db) { setMsg(msg, "You can't change this log.", "err"); return; }
+    let rows;
+    try { rows = parseCsv(await file.text()); } catch (_) { setMsg(msg, "Couldn't read that file.", "err"); return; }
+    const head = (rows[0] || []).map((h) => h.trim().toLowerCase());
+    const col = (n) => head.indexOf(n.toLowerCase());
+    const need = ["Incident date", "Van reg", "Type", "Description"];
+    if (need.some((n) => col(n) < 0)) { setMsg(msg, "That isn't a claims CSV from the Damages & Claims log. Use All claims → Download CSV there.", "err"); return; }
+    const get = (r, n) => (col(n) >= 0 ? String(r[col(n)] || "").trim() : "");
+    const docs = [];
+    for (const r of rows.slice(1)) {
+      const d = {
+        incidentDate: get(r, "Incident date"), vanReg: regShow(get(r, "Van reg")), type: get(r, "Type"), dpdRef: get(r, "DPD claim ref"), driver: get(r, "Driver"),
+        description: get(r, "Description"), evidenceUrl: get(r, "Evidence link"), total: numOrNull(get(r, "Total charged")), absorbed: numOrNull(get(r, "Absorbed by business")),
+        status: get(r, "Status"), fd: get(r, "FD"), depot: get(r, "Depot"), importedAt: todayS(),
+      };
+      if (!isDate(d.incidentDate)) continue;
+      docs.push({ key: hashKey([d.incidentDate, regKey(d.vanReg), d.dpdRef, d.driver, d.type, d.description].join("|")), d });
+    }
+    if (!docs.length) { setMsg(msg, "No claims found in that file.", "err"); return; }
+    setMsg(msg, `Importing ${plural(docs.length, "claim")}…`);
+    try {
+      for (const { key, d } of docs) await S.db.collection("claims").doc(key).set(d);
+      const vanClaims = docs.filter(({ d }) => d.vanReg && S.vans.some((v) => regKey(v.reg) === regKey(d.vanReg))).length;
+      setMsg(msg, `Imported ${plural(docs.length, "claim")}. ${vanClaims} match a van in this log.`, "ok");
+    } catch (err) { setMsg(msg, writeErr(err), "err"); }
+  }
+  async function clearClaims(btn) {
+    if (!S.claims.length) return;
+    if (!arm(btn)) return;
+    try { for (const c of S.claims) await S.db.collection("claims").doc(c.id).delete(); setMsg($("clMsg"), "Imported claims removed. Claim refs typed on events stay.", "ok"); }
+    catch (_) { setMsg($("clMsg"), "Couldn't remove them. Try again.", "err"); }
+  }
+
+  // Browser-only store, used when the page is opened outside claude.ai. Same calls as the claude.ai database.
+  function localDb() {
+    const KEY = "van-log-v1";
+    let data = { settings: {} }; COLLS.forEach((c) => { data[c] = {}; });
+    try { const raw = localStorage.getItem(KEY); if (raw) data = Object.assign(data, JSON.parse(raw)); } catch (_) {}
+    const ls = new Set();
+    const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (_) {} ls.forEach((f) => f()); };
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const docSnap = (id, v) => ({ id, exists: !!v, data: () => (v ? { ...v } : undefined) });
+    function query(coll) {
+      return { onSnapshot(next) { const run = () => next({ docs: Object.entries(data[coll] || {}).map(([id, v]) => docSnap(id, v)) }); ls.add(run); setTimeout(run, 0); return () => ls.delete(run); } };
+    }
+    const docRef = (coll, id) => ({
+      id,
+      async set(v) { (data[coll] = data[coll] || {})[id] = JSON.parse(JSON.stringify(v)); persist(); },
+      async delete() { if (data[coll]) delete data[coll][id]; persist(); },
+      onSnapshot(next) { const run = () => next(docSnap(id, (data[coll] || {})[id])); ls.add(run); setTimeout(run, 0); return () => ls.delete(run); },
+    });
+    return {
+      collection: (coll) => Object.assign(query(coll), { doc: (id) => docRef(coll, id || uid()), async add(v) { const ref = docRef(coll, uid()); await ref.set(v); return ref; } }),
+      doc: (path) => { const [c, id] = path.split("/"); return docRef(c, id); },
+    };
+  }
+
+  // ============================================================ WIRING
+  function render() {
+    const F = fleet();
+    const open = S.issues.filter((i) => i.status !== "fixed" && F.map.has(i.vanId) && !F.map.get(i.vanId).gone).length;
+    $("issueCount").hidden = !open; $("issueCount").textContent = open;
+    if (ui.tab === "dashboard") renderDashboard();
+    else if (ui.tab === "vans") renderVans();
+    else if (ui.tab === "log") renderLog();
+    else if (ui.tab === "issues") renderIssues();
+    else if (ui.tab === "mileage") renderMileage();
+    else if (ui.tab === "costs") renderCosts();
+    else if (ui.tab === "events") renderEvents();
+    else if (ui.tab === "settings") renderSettings();
+  }
+  function showTab(tab) {
+    if (ui.tab === "vans" && tab !== "vans" && ui.vFormOpen) { discardFresh("van"); ui.vFormOpen = false; ui.vEditing = null; }
+    ui.tab = tab;
+    document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+    document.querySelectorAll("main > .panel").forEach((p) => { p.hidden = p.id !== "tab-" + tab; });
+    try { localStorage.setItem("vl-tab", tab); } catch (_) {}
+    render();
+    window.scrollTo(0, 0);
+  }
+  function openVan(id) { ui.vDetail = id; ui.vFormOpen = false; showTab("vans"); }
+  function openEvent(id) { ui.aDetail = id; ui.aSearch = ""; $("aSearch").value = ""; ui.aType = ""; ui.aScope = "ALL"; showTab("events"); }
+
+  document.querySelector(".nav").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (!b) return; if (b.dataset.tab === "vans") { ui.vDetail = null; } showTab(b.dataset.tab); });
+
+  // one click handler for the shared row actions
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    const g = (sel) => t.closest(sel);
+    let x;
+    if ((x = g("[data-view]"))) return viewImage(x.dataset.view, x.dataset.vname);
+    if ((x = g("[data-attdel]"))) { const [k, i] = x.dataset.attdel.split(":"); return removeAtt(k, Number(i)); }
+    if ((x = g("[data-attlink]"))) return addLink(x.dataset.attlink);
+    if ((x = g("[data-eedit]"))) return startEventEdit(x.dataset.eedit);
+    if ((x = g("[data-edel]"))) return deleteEvent(x, ui.tab === "events" ? $("aMsg") : $("vListMsg"));
+    if ((x = g("[data-iedit]"))) return startIssueEdit(x.dataset.iedit);
+    if ((x = g("[data-idel]"))) return deleteIssue(x, ui.tab === "issues" ? $("iListMsg") : $("vListMsg"));
+    if ((x = g("[data-book]"))) return quickIssue(x.dataset.book, "booked", ui.tab === "issues" ? $("iListMsg") : $("vListMsg"));
+    if ((x = g("[data-done]"))) return quickIssue(x.dataset.done, "fixed", ui.tab === "issues" ? $("iListMsg") : $("vListMsg"));
+    if ((x = g("[data-fix-issue]"))) { const i = byId(S.issues, x.dataset.fixIssue); if (i) startEventFor(i.vanId, i.id); return; }
+    if ((x = g("[data-log-van]"))) return startEventFor(x.dataset.logVan);
+    if ((x = g("[data-issue-van]"))) return startIssueFor(x.dataset.issueVan);
+    if ((x = g("[data-vedit]"))) return openVanForm(x.dataset.vedit);
+    if ((x = g("[data-vback]"))) { ui.vDetail = null; render(); return; }
+    if ((x = g("[data-close-ev]"))) { ui.aDetail = null; render(); return; }
+    if ((x = g("[data-mdel]"))) { if (!arm(x)) return; S.db.collection("mileage").doc(x.dataset.mdel).delete().then(() => setMsg($("mMsg"), "Reading deleted.", "ok"), () => setMsg($("mMsg"), "Couldn't delete. Try again.", "err")); return; }
+    if (g("a") || g("input") || g("button:not([data-van])")) return;
+    if ((x = g("tr[data-iopen]"))) return startIssueEdit(x.dataset.iopen);
+    if ((x = g("tr[data-issue]")) && ui.tab === "dashboard") return startIssueEdit(x.dataset.issue);
+    if ((x = g("[data-van]"))) return openVan(x.dataset.van);
+    if ((x = g("tr[data-eopen]"))) { if (ui.tab === "events") { ui.aDetail = ui.aDetail === x.dataset.eopen ? null : x.dataset.eopen; render(); if (ui.aDetail) $("evDetail").scrollIntoView({ behavior: "smooth", block: "start" }); } else openEvent(x.dataset.eopen); return; }
+    if ((x = g("button[data-eopen]"))) return openEvent(x.dataset.eopen);
+  });
+  // claim buttons in the van page are <button data-eopen>, handled above by the "button" guard, so catch them first
+  document.addEventListener("click", (e) => { const b = e.target.closest("button[data-eopen]"); if (b) openEvent(b.dataset.eopen); }, true);
+  document.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t.dataset && t.dataset.attfile) { const files = [...t.files]; t.value = ""; addFiles(t.dataset.attfile, files); }
+    if (t.dataset && t.dataset.direct) { addDirect(t).finally(() => { t.value = ""; }); }
+  });
+  $("lbClose").addEventListener("click", closeImage);
+  $("lightbox").addEventListener("click", (e) => { if (e.target === $("lightbox")) closeImage(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("lightbox").hidden) closeImage(); });
+
+  // dashboard
+  $("dRangeSeg").addEventListener("click", (e) => { const b = e.target.closest("button[data-range]"); if (!b) return; ui.dRange = b.dataset.range; try { localStorage.setItem("vl-range", ui.dRange); } catch (_) {} render(); });
+  $("dPrev").addEventListener("click", () => { ui.dDate = addDays(periodInfo(ui.dDate).start, -28); render(); });
+  $("dNext").addEventListener("click", () => { ui.dDate = addDays(periodInfo(ui.dDate).start, 28); render(); });
+  $("dToday").addEventListener("click", () => { ui.dDate = todayS(); render(); });
+  $("dScope").addEventListener("change", (e) => { ui.dScope = e.target.value; render(); });
+  $("dExport").addEventListener("click", exportFleet);
+  $("dDepots").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-scope]"); if (!tr) return; ui.dScope = ui.dScope === tr.dataset.scope ? "ALL" : tr.dataset.scope; render(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+
+  // vans
+  $("vStatusSeg").addEventListener("click", (e) => { const b = e.target.closest("button[data-vs]"); if (b) { ui.vStatus = b.dataset.vs; render(); } });
+  $("vScope").addEventListener("change", (e) => { ui.vScope = e.target.value; render(); });
+  $("vSearch").addEventListener("input", (e) => { ui.vSearch = e.target.value; render(); });
+  $("vAdd").addEventListener("click", () => openVanForm(null));
+  $("vClose").addEventListener("click", closeVanForm);
+  $("vCancel").addEventListener("click", closeVanForm);
+  $("vDelete").addEventListener("click", (e) => deleteVan(e.currentTarget));
+  $("vanForm").addEventListener("submit", saveVan);
+  ["input", "change"].forEach((ev) => $("vanForm").addEventListener(ev, (e) => {
+    if (e.target.id === "vStatus" && e.type === "change") $("vStatusSince").value = todayS();
+    if (e.target.id === "vReg") { const p = e.target.selectionStart; e.target.value = e.target.value.toUpperCase(); try { e.target.setSelectionRange(p, p); } catch (_) {} }
+    syncVanForm();
+  }));
+
+  // events
+  ["input", "change"].forEach((ev) => $("evForm").addEventListener(ev, (e) => {
+    const id = e.target.id;
+    if (id === "eVan" && e.type === "change") { fillEventLinks(); prefillTypeFields(true); renderLog(); return; }
+    if ((id === "eType" || id === "eDate") && e.type === "change") prefillTypeFields(id === "eType");
+    if (id === "eMiles" && $("eType").value === "service" && !$("eSvcNextMiles").dataset.touched) prefillTypeFields(true);
+    if (id === "eSvcNextMiles" || id === "eSvcNext") $("eSvcNextMiles").dataset.touched = "1";
+    if (id === "eCost" && num($("eCost").value) === 0) $("ePaid").checked = true;
+    updateEventPreview();
+  }));
+  $("evForm").addEventListener("submit", saveEvent);
+  $("eCancel").addEventListener("click", () => { resetEventForm(false); setMsg($("eMsg"), ""); render(); });
+
+  // issues
+  $("iQuick").addEventListener("click", (e) => { const b = e.target.closest("button[data-q]"); if (!b) return; const [c, s, d] = b.dataset.q.split("|"); $("iCat").value = c; $("iSev").value = s; if (!$("iDesc").value.trim() || [...$("iQuick").querySelectorAll("[data-q]")].some((x) => x.dataset.q.split("|")[2] === $("iDesc").value.trim())) $("iDesc").value = d; syncIssueForm(); $("iDesc").focus(); });
+  ["input", "change"].forEach((ev) => $("isForm").addEventListener(ev, (e) => {
+    if (e.target.id === "iVan" && e.type === "change" && !ui.iEditing) { const v = vanById(e.target.value); if (v && v.driverId) $("iDriver").value = v.driverId; }
+    if (e.target.id === "iFixed" && !$("iFixedOn").value) $("iFixedOn").value = todayS();
+    syncIssueForm();
+  }));
+  $("isForm").addEventListener("submit", saveIssue);
+  $("iCancel").addEventListener("click", () => { resetIssueForm(); setMsg($("iMsg"), ""); render(); });
+  $("iStatusSeg").addEventListener("click", (e) => { const b = e.target.closest("button[data-is]"); if (b) { ui.iStatus = b.dataset.is; render(); } });
+  $("iScope").addEventListener("change", (e) => { ui.iScope = e.target.value; render(); });
+
+  // mileage
+  $("mDate").addEventListener("change", (e) => { ui.mDate = e.target.value; });
+  $("mScope").addEventListener("change", (e) => { ui.mScope = e.target.value; render(); });
+  $("mSave").addEventListener("click", saveMileage);
+  $("mTable").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.dataset.miles !== undefined) { e.preventDefault(); saveMileage(); } });
+
+  // costs
+  const setPeriod = (dir) => { ui.cDate = addDays(periodInfo(ui.cDate).start, dir * 28); render(); };
+  $("cPrev").addEventListener("click", () => setPeriod(-1));
+  $("cNext").addEventListener("click", () => setPeriod(1));
+  $("cToday").addEventListener("click", () => { ui.cDate = todayS(); render(); });
+  $("cScope").addEventListener("change", (e) => { ui.cScope = e.target.value; render(); });
+  $("cExportPnl").addEventListener("click", exportPnl);
+  $("cExportHire").addEventListener("click", exportHire);
+  $("cCopy").addEventListener("click", copySummary);
+  $("cTrend").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-period]"); if (tr) { ui.cDate = tr.dataset.period; render(); window.scrollTo({ top: 0, behavior: "smooth" }); } });
+
+  // all events
+  $("aScope").addEventListener("change", (e) => { ui.aScope = e.target.value; render(); });
+  $("aType").addEventListener("change", (e) => { ui.aType = e.target.value; render(); });
+  $("aSearch").addEventListener("input", (e) => { ui.aSearch = e.target.value; render(); });
+  $("aExport").addEventListener("click", exportEvents);
+
+  // settings
+  $("fdForm").addEventListener("submit", submitFd);
+  $("xCancel").addEventListener("click", () => { resetFdForm(); setMsg($("xMsg"), ""); });
+  $("fdList").addEventListener("click", (e) => { const ed = e.target.closest("[data-xedit]"); if (ed) return editFd(ed.dataset.xedit); const del = e.target.closest("[data-xdel]"); if (del) return deleteFd(del); });
+  $("drvForm").addEventListener("submit", submitDriver);
+  $("dCancel").addEventListener("click", () => { resetDriverForm(); setMsg($("dMsg"), ""); });
+  $("drvList").addEventListener("click", (e) => { const ed = e.target.closest("[data-dedit]"); if (ed) return editDriver(ed.dataset.dedit); const del = e.target.closest("[data-ddel]"); if (del) return deleteDriver(del); });
+  $("rulesForm").addEventListener("submit", saveRules);
+  $("clFile").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) importClaims(f); });
+  $("clClear").addEventListener("click", (e) => clearClaims(e.currentTarget));
+
+  function setWritable(ok) {
+    S.canWrite = ok;
+    for (const id of ["vSave", "eSave", "iSave", "mSave", "xSubmit", "dSubmit", "saveRules", "vAdd", "clClear"]) $(id).disabled = !ok;
+    $("clPick").hidden = !ok;
+    render();
+  }
+
+  function connect(db) {
+    S.db = db;
+    const slow = setTimeout(() => banner("The van log can't be reached right now. Figures may be out of date."), 10000);
+    const stopped = () => { clearTimeout(slow); banner("The van log stopped updating. Reload the page to reconnect."); };
+    const ok = () => { clearTimeout(slow); if (!S.local) banner(""); };
+    let firstSetup = true;
+    const maybeSetup = () => {
+      if (!firstSetup || !allLoaded()) return;
+      firstSetup = false;
+      if (!S.fds.length && !S.drivers.length && !S.vans.length) showTab("settings");
+    };
+    db.doc("settings/main").onSnapshot((snap) => {
+      S.settings = snap.exists ? { ...DEFAULT_SETTINGS, ...snap.data() } : { ...DEFAULT_SETTINGS };
+      fillRulesForm(); S.rev++; render();
+    }, () => {});
+    for (const c of COLLS) db.collection(c).onSnapshot((snap) => { ok(); S[c] = snap.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded[c] = true; S.rev++; maybeSetup(); render(); }, stopped);
+    render();
+  }
+
+  // ---------- start ----------
+  ["van", "event", "issue"].forEach(attControls);
+  fillRulesForm();
+  resetEventForm(false);
+  resetIssueForm();
+  let startTab = "dashboard";
+  try { const t = localStorage.getItem("vl-tab"); if (t && $("tab-" + t)) startTab = t; } catch (_) {}
+  showTab(startTab);
+
+  (async () => {
+    const claude = window.claude;
+    if (!claude || !claude.use) {
+      S.local = true;
+      banner("Saved in this browser only. Open the published page on claude.ai to share the log across devices and add photos.");
+      return connect(localDb());
+    }
+    const [db, user, dl, assets] = await Promise.all([claude.use("db"), claude.use("user"), claude.use("downloads"), claude.use("assets")]);
+    S.dl = dl; S.assets = assets;
+    ["van", "event", "issue"].forEach(renderAtt);
+    if (!db) { banner("Saving isn't available here. Open this page on claude.ai while signed in."); COLLS.forEach((c) => { S.loaded[c] = true; }); setWritable(false); return; }
+    if (user) { try { if ((await user.can("data.write")) === false) { setWritable(false); banner("You can view this log but not change it."); } } catch (_) {} }
+    connect(db);
+  })();
+})();
+</script>
